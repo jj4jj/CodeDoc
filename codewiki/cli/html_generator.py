@@ -1,0 +1,434 @@
+"""
+HTML generator for GitHub Pages documentation viewer.
+"""
+
+import json
+from pathlib import Path
+from typing import Optional, Dict, Any, List
+
+from codewiki.cli.utils.errors import FileSystemError
+from codewiki.cli.utils.fs import safe_write, safe_read
+
+
+class HTMLGenerator:
+    """
+    Generates static HTML documentation viewer for GitHub Pages.
+    
+    Creates a self-contained index.html with embedded styles, scripts,
+    and configuration for client-side markdown rendering.
+    """
+    
+    def __init__(self, template_dir: Optional[Path] = None):
+        """
+        Initialize HTML generator.
+        
+        Args:
+            template_dir: Path to template directory (default: package templates)
+        """
+        if template_dir is None:
+            # Use package templates
+            template_dir = Path(__file__).parent.parent / "templates" / "github_pages"
+        
+        self.template_dir = Path(template_dir)
+        
+    
+    def load_module_tree(self, docs_dir: Path) -> Dict[str, Any]:
+        """
+        Load module tree from documentation directory.
+        
+        Args:
+            docs_dir: Documentation directory path
+            
+        Returns:
+            Module tree structure
+        """
+        module_tree_path = docs_dir / "module_tree.json"
+        if not module_tree_path.exists():
+            # Fallback to a simple structure
+            return {
+                "Overview": {
+                    "description": "Repository overview",
+                    "components": [],
+                    "children": {}
+                }
+            }
+        
+        try:
+            content = safe_read(module_tree_path)
+            return json.loads(content)
+        except Exception as e:
+            raise FileSystemError(f"Failed to load module tree: {e}")
+    
+    def load_metadata(self, docs_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Load metadata from documentation directory.
+        
+        Args:
+            docs_dir: Documentation directory path
+            
+        Returns:
+            Metadata dictionary or None if not found
+        """
+        metadata_path = docs_dir / "metadata.json"
+        if not metadata_path.exists():
+            return None
+        
+        try:
+            content = safe_read(metadata_path)
+            return json.loads(content)
+        except Exception:
+            # Non-critical, return None
+            return None
+            
+    def generate(
+        self,
+        output_path: Path,
+        title: str,
+        module_tree: Optional[Dict[str, Any]] = None,
+        repository_url: Optional[str] = None,
+        github_pages_url: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None,
+        docs_dir: Optional[Path] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Generate HTML documentation viewer.
+        
+        Args:
+            output_path: Output file path (index.html)
+            title: Documentation title
+            module_tree: Module tree structure (auto-loaded from docs_dir if not provided)
+            repository_url: GitHub repository URL
+            github_pages_url: Expected GitHub Pages URL
+            config: Additional configuration
+            docs_dir: Documentation directory (for auto-loading module_tree and metadata)
+            metadata: Metadata dictionary (auto-loaded from docs_dir if not provided)
+        """
+        # Auto-load module_tree and metadata from docs_dir if not provided
+        if docs_dir:
+            if module_tree is None:
+                module_tree = self.load_module_tree(docs_dir)
+            if metadata is None:
+                metadata = self.load_metadata(docs_dir)
+        
+        # Default values
+        if module_tree is None:
+            module_tree = {}
+        if config is None:
+            config = {}
+        
+        # Load template
+        template_path = self.template_dir / "viewer_template.html"
+        if not template_path.exists():
+            raise FileSystemError(f"Template not found: {template_path}")
+        
+        template_content = safe_read(template_path)
+        
+        # Build info content HTML
+        info_content = self._build_info_content(metadata)
+        show_info = "block" if info_content else "none"
+        
+        # Build repository link
+        repo_link = ""
+        if repository_url:
+            repo_link = f'<a href="{repository_url}" class="repo-link" target="_blank">🔗 View Repository</a>'
+        
+        # Determine docs base path
+        # For GitHub Pages: relative path to docs folder
+        # For local: relative path to docs folder
+        docs_base_path = ""
+        if docs_dir and output_path.parent != docs_dir:
+            # Calculate relative path from output to docs
+            try:
+                docs_base_path = Path(docs_dir.name).as_posix()
+            except Exception:
+                docs_base_path = "."
+        
+        # Detect available languages
+        available_languages = []
+        if docs_dir:
+            available_languages = self.detect_available_languages(docs_dir)
+        
+        # Prepare JSON data for embedding
+        config_json = json.dumps(config, indent=2)
+        module_tree_json = json.dumps(module_tree, indent=2)
+        metadata_json = json.dumps(metadata, indent=2) if metadata else "null"
+        available_languages_json = json.dumps(available_languages)
+        
+        # Replace placeholders
+        html_content = template_content
+        replacements = {
+            "{{TITLE}}": self._escape_html(title),
+            "{{REPO_LINK}}": repo_link,
+            "{{SHOW_INFO}}": show_info,
+            "{{INFO_CONTENT}}": info_content,
+            "{{CONFIG_JSON}}": config_json,
+            "{{MODULE_TREE_JSON}}": module_tree_json,
+            "{{METADATA_JSON}}": metadata_json,
+            "{{DOCS_BASE_PATH}}": docs_base_path,
+            "{{AVAILABLE_LANGUAGES}}": available_languages_json,
+        }
+        
+        for placeholder, value in replacements.items():
+            html_content = html_content.replace(placeholder, value)
+        
+        # Write output
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        safe_write(output_path, html_content)
+        
+    def generate_index_portal(
+        self,
+        output_path: Path,
+        title: str,
+        repository_url: Optional[str] = None,
+        docs_root: Optional[Path] = None
+    ):
+        """
+        Generate high-tech HTML documentation portal with gallery support.
+        
+        Args:
+            output_path: Output file path (index.html)
+            title: Portal title
+            repository_url: GitHub repository URL
+            docs_root: Root documentation directory to scan for wikis
+        """
+        # Load template
+        template_path = self.template_dir / "index_template.html"
+        if not template_path.exists():
+            raise FileSystemError(f"Template not found: {template_path}")
+        
+        template_content = safe_read(template_path)
+        
+        # Build repository link
+        repo_link = ""
+        if repository_url:
+            repo_link = f'<a href="{repository_url}" class="repo-link" target="_blank">🔗 View Repository</a>'
+            
+        # Discover wiki gallery
+        wiki_gallery = []
+        if docs_root and docs_root.exists():
+            try:
+                for child in sorted(docs_root.iterdir()):
+                    if child.is_dir() and not child.name.startswith(('.', '_', 'temp')):
+                        # Check if it's a valid codewiki project
+                        if (child / "module_tree.json").exists() or (child / "metadata.json").exists():
+                            # Load metadata if available to get stats/descriptions
+                            desc = f"Documentation for {child.name}"
+                            stats = {}
+                            metadata_path = child / "metadata.json"
+                            if metadata_path.exists():
+                                try:
+                                    meta = json.loads(safe_read(metadata_path))
+                                    if 'statistics' in meta:
+                                        stats = meta['statistics']
+                                except Exception:
+                                    pass
+                                    
+                            # Check available languages
+                            langs = self.detect_available_languages(child)
+                            docs = self.discover_document_paths(child, languages=langs)
+                            
+                            wiki_gallery.append({
+                                "id": child.name,
+                                "name": child.name.title().replace('-', ' '),
+                                "path": child.name,
+                                "description": desc,
+                                "statistics": stats,
+                                "languages": langs,
+                                "documents": docs,
+                            })
+            except Exception:
+                pass
+                
+        gallery_json = json.dumps(wiki_gallery)
+        
+        # Replace placeholders
+        html_content = template_content
+        replacements = {
+            "{{TITLE}}": self._escape_html(title),
+            "{{REPO_LINK}}": repo_link,
+            "{{WIKI_GALLERY_JSON}}": gallery_json,
+        }
+        
+        for placeholder, value in replacements.items():
+            html_content = html_content.replace(placeholder, value)
+            
+        # Write output
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        safe_write(output_path, html_content)
+    
+    def _build_info_content(self, metadata: Optional[Dict[str, Any]]) -> str:
+        """
+        Build HTML content for repo info section.
+        
+        Args:
+            metadata: Metadata dictionary
+            
+        Returns:
+            HTML string for info content
+        """
+        if not metadata or not metadata.get('generation_info'):
+            return ""
+        
+        info = metadata.get('generation_info', {})
+        stats = metadata.get('statistics', {})
+        
+        html_parts = []
+        
+        if info.get('main_model'):
+            html_parts.append(f'<div class="info-row"><strong>Model:</strong> {self._escape_html(info["main_model"])}</div>')
+        
+        if info.get('timestamp'):
+            try:
+                from datetime import datetime
+                timestamp = info['timestamp']
+                # Parse ISO format timestamp
+                if isinstance(timestamp, str):
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    formatted_date = dt.strftime('%Y-%m-%d')
+                    html_parts.append(f'<div class="info-row"><strong>Generated:</strong> {formatted_date}</div>')
+            except Exception:
+                pass
+        
+        if info.get('commit_id'):
+            commit_short = info['commit_id'][:8]
+            html_parts.append(f'<div class="info-row"><strong>Commit:</strong> {commit_short}</div>')
+        
+        if stats.get('total_components'):
+            components_str = f"{stats['total_components']:,}"
+            html_parts.append(f'<div class="info-row"><strong>Components:</strong> {components_str}</div>')
+        
+        if stats.get('max_depth'):
+            html_parts.append(f'<div class="info-row"><strong>Max Depth:</strong> {stats["max_depth"]}</div>')
+        
+        return '\n                '.join(html_parts)
+    
+    def _escape_html(self, text: str) -> str:
+        """
+        Escape HTML special characters.
+        
+        Args:
+            text: Text to escape
+            
+        Returns:
+            Escaped text
+        """
+        return (text
+                .replace('&', '&amp;')
+                .replace('<', '&lt;')
+                .replace('>', '&gt;')
+                .replace('"', '&quot;')
+                .replace("'", '&#39;'))
+    
+    def detect_available_languages(self, docs_dir: Path) -> List[str]:
+        """
+        Detect available translation language directories.
+        
+        Scans docs_dir for subdirectories that contain .md files,
+        indicating they are translation directories (e.g. zh/, ja/).
+        
+        Args:
+            docs_dir: Documentation directory path
+            
+        Returns:
+            List of language codes (e.g. ['zh', 'ja'])
+        """
+        languages = []
+        try:
+            for child in sorted(docs_dir.iterdir()):
+                if child.is_dir() and not child.name.startswith(('.', '_', 'temp')):
+                    # Check if directory contains .md files
+                    md_files = list(child.glob('*.md'))
+                    if md_files:
+                        languages.append(child.name)
+        except Exception:
+            pass
+        return languages
+    
+    def discover_document_paths(self, docs_dir: Path, languages: Optional[List[str]] = None) -> List[str]:
+        """
+        Discover markdown document paths for sidebar fallback.
+
+        Returns paths without `.md`, e.g. `overview`, `api/models`.
+        """
+        docs: List[str] = []
+        language_dirs = set(languages or [])
+        skip_roots = {"temp", *language_dirs}
+
+        try:
+            for md_file in sorted(docs_dir.rglob("*.md")):
+                rel_parts = md_file.relative_to(docs_dir).parts
+                if not rel_parts:
+                    continue
+
+                # Skip language folders, temp folders, and hidden/internal folders.
+                if (
+                    rel_parts[0] in skip_roots
+                    or rel_parts[0].startswith(".")
+                    or rel_parts[0].startswith("_")
+                    or any(p.startswith(".") or p.startswith("_") for p in rel_parts[:-1])
+                ):
+                    continue
+
+                rel_doc = md_file.relative_to(docs_dir).as_posix()
+                if rel_doc.endswith(".md"):
+                    rel_doc = rel_doc[:-3]
+
+                docs.append(rel_doc)
+        except Exception:
+            pass
+
+        # Keep overview first for better navigation ergonomics.
+        docs = sorted(set(docs), key=lambda d: (d != "overview", d))
+        return docs
+      
+
+    
+    def detect_repository_info(self, repo_path: Path) -> Dict[str, Optional[str]]:
+        """
+        Detect repository information from git.
+        
+        Args:
+            repo_path: Repository path
+            
+        Returns:
+            Dictionary with 'name', 'url', 'github_pages_url'
+        """
+        info = {
+            'name': repo_path.name,
+            'url': None,
+            'github_pages_url': None,
+        }
+        
+        try:
+            import git
+            repo = git.Repo(repo_path)
+            
+            # Get repository name
+            info['name'] = repo_path.name
+            
+            # Get remote URL
+            if repo.remotes:
+                remote_url = repo.remotes.origin.url
+                
+                # Clean URL
+                if remote_url.startswith('git@github.com:'):
+                    remote_url = remote_url.replace('git@github.com:', 'https://github.com/')
+                
+                remote_url = remote_url.rstrip('/').replace('.git', '')
+                info['url'] = remote_url
+                
+                # Compute GitHub Pages URL
+                if 'github.com' in remote_url:
+                    parts = remote_url.split('/')
+                    if len(parts) >= 2:
+                        owner = parts[-2]
+                        repo = parts[-1]
+                        info['github_pages_url'] = f"https://{owner}.github.io/{repo}/"
+        
+        except Exception:
+            pass
+        
+        return info
