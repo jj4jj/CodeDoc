@@ -1298,6 +1298,68 @@ __CW_SHARED_UI_LAYOUT__
             margin-bottom: 12px;
         }
 
+        .admin-workspace {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+        }
+
+        .admin-sidenav {
+            position: sticky;
+            top: 12px;
+            padding: 8px;
+        }
+
+        .admin-sidenav-head {
+            font-size: 0.78rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            padding: 6px 6px 4px;
+        }
+
+        .admin-nav-btn {
+            width: 100%;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text);
+            text-align: left;
+            padding: 8px 10px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-bottom: 6px;
+        }
+
+        .admin-nav-btn:hover {
+            color: var(--primary);
+            border-color: var(--line);
+            background: var(--surface-soft);
+        }
+
+        .admin-nav-btn.active {
+            color: #fff;
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        .admin-content {
+            min-width: 0;
+        }
+
+        .admin-panel {
+            display: none;
+            margin-bottom: 0;
+        }
+
+        .admin-panel.active {
+            display: block;
+        }
+
         .stat {
             border: 1px solid var(--line);
             background: var(--surface);
@@ -1572,6 +1634,29 @@ __CW_SHARED_UI_LAYOUT__
         }
 
         @media (max-width: 940px) {
+            .admin-workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-sidenav {
+                position: static;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                padding: 10px;
+            }
+
+            .admin-sidenav-head {
+                width: 100%;
+                margin-bottom: 2px;
+            }
+
+            .admin-nav-btn {
+                width: auto;
+                min-width: 110px;
+                margin-bottom: 0;
+            }
+
             .form-grid {
                 grid-template-columns: 1fr;
             }
@@ -1667,15 +1752,24 @@ __CW_SHARED_UI_LAYOUT__
             </article>
         </section>
 
-        <section class="panel">
-            <h2>创建新任务</h2>
+        {% if error %}
+        <div class="alert">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="alert {% if message_type == 'success' %}alert-success{% endif %}">{{ message }}</div>
+        {% endif %}
 
-            {% if error %}
-            <div class="alert">{{ error }}</div>
-            {% endif %}
-            {% if message %}
-            <div class="alert {% if message_type == 'success' %}alert-success{% endif %}">{{ message }}</div>
-            {% endif %}
+        <section class="admin-workspace">
+            <aside class="panel admin-sidenav">
+                <div class="admin-sidenav-head">控制台导航</div>
+                <button type="button" class="admin-nav-btn active" data-admin-panel="panel-create">创建新任务</button>
+                <button type="button" class="admin-nav-btn" data-admin-panel="panel-doc-types">文档类型模板</button>
+                <button type="button" class="admin-nav-btn" data-admin-panel="panel-tasks">全部任务 ({{ total_count }})</button>
+            </aside>
+
+            <div class="admin-content">
+        <section class="panel admin-panel active" id="panel-create">
+            <h2>创建新任务</h2>
 
             <form method="POST" action="/admin">
                 <div class="form-grid">
@@ -1808,7 +1902,7 @@ __CW_SHARED_UI_LAYOUT__
             </form>
         </section>
 
-        <section class="panel">
+        <section class="panel admin-panel" id="panel-doc-types">
             <h2>文档类型模板管理</h2>
             <p style="color:var(--muted);font-size:0.86rem;margin-bottom:10px;">
                 用于定义 `doc_type` 对应的默认提示词与参数模板。任务里选择该类型后会自动套用。
@@ -1903,7 +1997,7 @@ __CW_SHARED_UI_LAYOUT__
             </details>
         </section>
 
-        <section class="panel">
+        <section class="panel admin-panel" id="panel-tasks">
             <h2>全部任务 ({{ total_count }})</h2>
 
             {% if jobs %}
@@ -1984,6 +2078,8 @@ __CW_SHARED_UI_LAYOUT__
             <div class="empty">暂无任务，请先创建。</div>
             {% endif %}
         </section>
+            </div>
+        </section>
 
         <div id="logModal" class="log-modal">
             <div class="log-panel">
@@ -2003,6 +2099,7 @@ __CW_SHARED_UI_LAYOUT__
 
     <script>
         const ADVANCED_STORAGE_KEY = "codewiki_admin_advanced_options";
+        const ADMIN_PANEL_STORAGE_KEY = "codewiki_admin_active_panel";
         const THEME_KEY = "codewiki_theme";
         let currentLogJobId = "";
         let logAutoRefreshTimer = null;
@@ -2076,6 +2173,71 @@ __CW_SHARED_UI_LAYOUT__
             });
             form.addEventListener("change", (e) => {
                 if (e.target && e.target.name) saveAdvancedOptions();
+            });
+        }
+
+        function wireAdminPanels() {
+            const navButtons = Array.from(document.querySelectorAll(".admin-nav-btn[data-admin-panel]"));
+            const panels = Array.from(document.querySelectorAll(".admin-panel[id]"));
+            if (!navButtons.length || !panels.length) return;
+
+            const panelIds = new Set(panels.map((panel) => panel.id));
+
+            const setActivePanel = (panelId, options = {}) => {
+                const { persist = true, updateHash = true } = options;
+                const targetId = panelIds.has(panelId) ? panelId : panels[0].id;
+
+                panels.forEach((panel) => {
+                    panel.classList.toggle("active", panel.id === targetId);
+                });
+                navButtons.forEach((button) => {
+                    button.classList.toggle("active", button.dataset.adminPanel === targetId);
+                });
+
+                if (persist) {
+                    localStorage.setItem(ADMIN_PANEL_STORAGE_KEY, targetId);
+                }
+
+                if (updateHash) {
+                    const hashValue = targetId.startsWith("panel-") ? targetId.slice(6) : targetId;
+                    history.replaceState(null, "", `#${hashValue}`);
+                }
+            };
+
+            let initialPanelId = "";
+            const hash = window.location.hash.replace("#", "").trim();
+            if (hash) {
+                if (panelIds.has(hash)) {
+                    initialPanelId = hash;
+                } else {
+                    const prefixed = `panel-${hash}`;
+                    if (panelIds.has(prefixed)) {
+                        initialPanelId = prefixed;
+                    }
+                }
+            }
+            if (!initialPanelId) {
+                const saved = localStorage.getItem(ADMIN_PANEL_STORAGE_KEY) || "";
+                if (panelIds.has(saved)) {
+                    initialPanelId = saved;
+                }
+            }
+
+            setActivePanel(initialPanelId || "panel-create", { persist: false, updateHash: Boolean(hash) });
+
+            navButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    const panelId = button.dataset.adminPanel || "";
+                    setActivePanel(panelId);
+                });
+            });
+
+            window.addEventListener("hashchange", () => {
+                const nextHash = window.location.hash.replace("#", "").trim();
+                const nextId = panelIds.has(nextHash) ? nextHash : `panel-${nextHash}`;
+                if (panelIds.has(nextId)) {
+                    setActivePanel(nextId, { persist: true, updateHash: false });
+                }
             });
         }
 
@@ -2198,6 +2360,7 @@ __CW_SHARED_UI_LAYOUT__
 
             loadAdvancedOptions();
             wireAdvancedOptionsPersistence();
+            wireAdminPanels();
             wireTaskFilters();
 
             const refreshBtn = document.getElementById("adminRefresh");
