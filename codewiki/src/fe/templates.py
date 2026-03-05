@@ -325,28 +325,6 @@ WEB_INTERFACE_TEMPLATE = _inject_shared_ui("""
     <style>
 __CW_SHARED_UI_TOKENS__
 __CW_SHARED_UI_LAYOUT__
-        .hero {
-            margin-bottom: 12px;
-        }
-
-        .hero h1 {
-            font-size: 1.34rem;
-            margin-bottom: 4px;
-            letter-spacing: 0.01em;
-        }
-
-        .hero p {
-            color: var(--muted);
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-        }
-
-        .hero-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
         .workspace {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 320px;
@@ -620,14 +598,6 @@ __CW_SHARED_UI_LAYOUT__
                 </button>
             </div>
         </header>
-
-        <section class="hero">
-            <h1>文档生成列表</h1>
-            <p>首页仅用于浏览已生成文档。新建任务请进入控制台。</p>
-            <div class="hero-actions">
-                <a href="/admin" class="btn">进入控制台创建任务</a>
-            </div>
-        </section>
 
         {% if message %}
         <div class="alert alert-{{ message_type }}">{{ message }}</div>
@@ -1507,40 +1477,32 @@ __CW_SHARED_UI_TOKENS__
 __CW_SHARED_UI_LAYOUT__
         .app {
             max-width: 1460px;
-        }
-
-        .hero {
-            margin-bottom: 12px;
-        }
-
-        .hero h1 {
-            font-size: 1.35rem;
-            margin-bottom: 4px;
-        }
-
-        .hero p {
-            color: var(--muted);
-            font-size: 0.9rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .stats {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
-            margin-bottom: 12px;
         }
 
         .admin-workspace {
             display: grid;
             grid-template-columns: 220px minmax(0, 1fr);
             gap: 12px;
-            align-items: start;
+            align-items: stretch;
+            flex: 1;
+            min-height: 0;
         }
 
         .admin-sidenav {
-            position: sticky;
-            top: 12px;
             padding: 8px;
+            height: 100%;
+            min-height: 0;
+            overflow: auto;
+            margin-bottom: 0;
         }
 
         .admin-sidenav-head {
@@ -1581,11 +1543,18 @@ __CW_SHARED_UI_LAYOUT__
 
         .admin-content {
             min-width: 0;
+            height: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .admin-panel {
             display: none;
             margin-bottom: 0;
+            height: 100%;
+            min-height: 0;
+            overflow: auto;
         }
 
         .admin-panel.active {
@@ -1866,8 +1835,14 @@ __CW_SHARED_UI_LAYOUT__
         }
 
         @media (max-width: 940px) {
+            .app {
+                min-height: auto;
+            }
+
             .admin-workspace {
                 grid-template-columns: 1fr;
+                flex: none;
+                min-height: auto;
             }
 
             .admin-sidenav {
@@ -1876,6 +1851,8 @@ __CW_SHARED_UI_LAYOUT__
                 flex-wrap: wrap;
                 gap: 6px;
                 padding: 10px;
+                height: auto;
+                overflow: visible;
             }
 
             .admin-sidenav-head {
@@ -1887,6 +1864,15 @@ __CW_SHARED_UI_LAYOUT__
                 width: auto;
                 min-width: 110px;
                 margin-bottom: 0;
+            }
+
+            .admin-content {
+                height: auto;
+            }
+
+            .admin-panel {
+                height: auto;
+                overflow: visible;
             }
 
             .form-grid {
@@ -1957,33 +1943,6 @@ __CW_SHARED_UI_LAYOUT__
             </div>
         </header>
 
-        <section class="hero">
-            <h1>任务控制台</h1>
-            <p>创建文档任务，查看队列状态，并管理已完成或失败任务。</p>
-            <p style="margin-top:8px;color:var(--muted);font-size:13px;">
-                任务并行执行: {{ task_concurrency }} / {{ task_concurrency_max }}（可通过启动参数 `--task-concurrency` 配置）
-            </p>
-        </section>
-
-        <section class="stats">
-            <article class="stat queued">
-                <div class="value">{{ queued_count }}</div>
-                <div class="label">Queued</div>
-            </article>
-            <article class="stat processing">
-                <div class="value">{{ processing_count }}</div>
-                <div class="label">Processing</div>
-            </article>
-            <article class="stat completed">
-                <div class="value">{{ completed_count }}</div>
-                <div class="label">Completed</div>
-            </article>
-            <article class="stat failed">
-                <div class="value">{{ failed_count }}</div>
-                <div class="label">Failed</div>
-            </article>
-        </section>
-
         {% if error %}
         <div class="alert">{{ error }}</div>
         {% endif %}
@@ -1995,6 +1954,7 @@ __CW_SHARED_UI_LAYOUT__
             <aside class="panel admin-sidenav">
                 <div class="admin-sidenav-head">控制台导航</div>
                 <button type="button" class="admin-nav-btn active" data-admin-panel="panel-create">创建新任务</button>
+                <button type="button" class="admin-nav-btn" data-admin-panel="panel-stats">任务概览</button>
                 <button type="button" class="admin-nav-btn" data-admin-panel="panel-doc-types">文档类型模板</button>
                 <button type="button" class="admin-nav-btn" data-admin-panel="panel-tasks">全部任务 ({{ total_count }})</button>
             </aside>
@@ -2132,6 +2092,31 @@ __CW_SHARED_UI_LAYOUT__
                     <button type="submit" class="btn btn-primary">提交任务</button>
                 </div>
             </form>
+        </section>
+
+        <section class="panel admin-panel" id="panel-stats">
+            <h2>任务概览</h2>
+            <p style="margin-bottom:10px;color:var(--muted);font-size:13px;">
+                任务并行执行: {{ task_concurrency }} / {{ task_concurrency_max }}（可通过启动参数 `--task-concurrency` 配置）
+            </p>
+            <div class="stats">
+                <article class="stat queued">
+                    <div class="value">{{ queued_count }}</div>
+                    <div class="label">Queued</div>
+                </article>
+                <article class="stat processing">
+                    <div class="value">{{ processing_count }}</div>
+                    <div class="label">Processing</div>
+                </article>
+                <article class="stat completed">
+                    <div class="value">{{ completed_count }}</div>
+                    <div class="label">Completed</div>
+                </article>
+                <article class="stat failed">
+                    <div class="value">{{ failed_count }}</div>
+                    <div class="label">Failed</div>
+                </article>
+            </div>
         </section>
 
         <section class="panel admin-panel" id="panel-doc-types">
