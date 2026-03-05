@@ -335,15 +335,57 @@ class DocumentationGenerator:
             file_manager.ensure_directory(working_dir)
             first_module_tree_path = os.path.join(working_dir, FIRST_MODULE_TREE_FILENAME)
             module_tree_path = os.path.join(working_dir, MODULE_TREE_FILENAME)
+            first_module_tree_meta_path = os.path.join(
+                working_dir, f"{FIRST_MODULE_TREE_FILENAME}.meta.json"
+            )
             
             # Check if module tree exists
+            should_recluster = True
+            module_tree = None
             if os.path.exists(first_module_tree_path):
                 logger.debug(f"Module tree found at {first_module_tree_path}")
-                module_tree = file_manager.load_json(first_module_tree_path)
-            else:
+                cached_tree = file_manager.load_json(first_module_tree_path)
+                if isinstance(cached_tree, dict):
+                    cached_depth = None
+                    tree_meta = file_manager.load_json(first_module_tree_meta_path)
+                    if isinstance(tree_meta, dict):
+                        cached_depth = tree_meta.get("max_depth")
+                    if cached_depth is None:
+                        # Backward-compatible fallback: read previous run metadata if available.
+                        metadata_path = os.path.join(working_dir, "metadata.json")
+                        metadata = file_manager.load_json(metadata_path)
+                        if isinstance(metadata, dict):
+                            cached_depth = (
+                                metadata.get("statistics", {}) or {}
+                            ).get("max_depth")
+
+                    current_depth = int(getattr(self.config, "max_depth", 1) or 1)
+                    if cached_depth is None or int(cached_depth) == current_depth:
+                        module_tree = cached_tree
+                        should_recluster = False
+                    else:
+                        logger.info(
+                            "Re-clustering modules because max_depth changed: "
+                            f"cached={cached_depth}, current={current_depth}"
+                        )
+                else:
+                    logger.warning(
+                        f"Invalid cached module tree at {first_module_tree_path}, re-clustering"
+                    )
+
+            if should_recluster:
                 logger.debug(f"Module tree not found at {module_tree_path}, clustering modules")
                 module_tree = cluster_modules(leaf_nodes, components, self.config)
                 file_manager.save_json(module_tree, first_module_tree_path)
+                file_manager.save_json(
+                    {
+                        "max_depth": int(getattr(self.config, "max_depth", 1) or 1),
+                        "max_token_per_module": int(
+                            getattr(self.config, "max_token_per_module", 0) or 0
+                        ),
+                    },
+                    first_module_tree_meta_path,
+                )
             
             file_manager.save_json(module_tree, module_tree_path)
             

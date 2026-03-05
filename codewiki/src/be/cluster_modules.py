@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from collections import defaultdict
 import logging
 import traceback
@@ -45,13 +45,27 @@ def cluster_modules(
     leaf_nodes: List[str],
     components: Dict[str, Node],
     config: Config,
-    current_module_tree: dict[str, Any] = {},
+    current_module_tree: Optional[dict[str, Any]] = None,
     current_module_name: str = None,
-    current_module_path: List[str] = []
+    current_module_path: Optional[List[str]] = None,
+    current_depth: int = 1,
 ) -> Dict[str, Any]:
     """
     Cluster the potential core components into modules.
     """
+    if current_module_tree is None:
+        current_module_tree = {}
+    if current_module_path is None:
+        current_module_path = []
+
+    max_depth = max(1, int(getattr(config, "max_depth", 1) or 1))
+    if current_depth > max_depth:
+        logger.debug(
+            f"Skipping clustering for {current_module_name} because current depth "
+            f"{current_depth} exceeds max_depth={max_depth}"
+        )
+        return {}
+
     potential_core_components, potential_core_components_with_code = format_potential_core_components(leaf_nodes, components)
 
     if count_tokens(potential_core_components_with_code) <= config.max_token_per_module:
@@ -119,7 +133,15 @@ def cluster_modules(
         
         current_module_path.append(module_name)
         module_info["children"] = {}
-        module_info["children"] = cluster_modules(valid_sub_leaf_nodes, components, config, current_module_tree, module_name, current_module_path)
+        module_info["children"] = cluster_modules(
+            valid_sub_leaf_nodes,
+            components,
+            config,
+            current_module_tree,
+            module_name,
+            current_module_path,
+            current_depth=current_depth + 1,
+        )
         current_module_path.pop()
 
     return module_tree

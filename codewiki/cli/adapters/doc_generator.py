@@ -223,13 +223,45 @@ class CLIDocumentationGenerator:
         file_manager.ensure_directory(working_dir)
         first_module_tree_path = os.path.join(working_dir, FIRST_MODULE_TREE_FILENAME)
         module_tree_path = os.path.join(working_dir, MODULE_TREE_FILENAME)
+        first_module_tree_meta_path = os.path.join(
+            working_dir, f"{FIRST_MODULE_TREE_FILENAME}.meta.json"
+        )
         
         try:
+            should_recluster = True
+            module_tree = None
             if os.path.exists(first_module_tree_path):
-                module_tree = file_manager.load_json(first_module_tree_path)
-            else:
+                cached_tree = file_manager.load_json(first_module_tree_path)
+                if isinstance(cached_tree, dict):
+                    cached_depth = None
+                    tree_meta = file_manager.load_json(first_module_tree_meta_path)
+                    if isinstance(tree_meta, dict):
+                        cached_depth = tree_meta.get("max_depth")
+                    if cached_depth is None:
+                        metadata_path = os.path.join(working_dir, "metadata.json")
+                        metadata = file_manager.load_json(metadata_path)
+                        if isinstance(metadata, dict):
+                            cached_depth = (
+                                metadata.get("statistics", {}) or {}
+                            ).get("max_depth")
+
+                    current_depth = int(getattr(backend_config, "max_depth", 1) or 1)
+                    if cached_depth is None or int(cached_depth) == current_depth:
+                        module_tree = cached_tree
+                        should_recluster = False
+
+            if should_recluster:
                 module_tree = cluster_modules(leaf_nodes, components, backend_config)
                 file_manager.save_json(module_tree, first_module_tree_path)
+                file_manager.save_json(
+                    {
+                        "max_depth": int(getattr(backend_config, "max_depth", 1) or 1),
+                        "max_token_per_module": int(
+                            getattr(backend_config, "max_token_per_module", 0) or 0
+                        ),
+                    },
+                    first_module_tree_meta_path,
+                )
             
             file_manager.save_json(module_tree, module_tree_path)
             self.job.module_count = len(module_tree)
@@ -341,4 +373,3 @@ class CLIDocumentationGenerator:
             # Create our own if backend didn't
             with open(metadata_path, 'w') as f:
                 f.write(self.job.to_json())
-
