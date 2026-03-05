@@ -144,6 +144,30 @@ codewiki config set \
   # Force API key into config file (no keychain)
   $ codewiki config set --api-key sk-xxx --save-key-to-file
 
+
+#--max-depth：提高层级上限，建议 3~5。
+#--max-token-per-module：适当调小（如 1200~2200），促使大模块继续拆分。
+#--max-token-per-leaf-module：调大（如 1800~3200），让叶子模块写得更细。
+#--max-tokens：总预算调大（如 120000+），避免中途“写不下”。
+
+codewiki generate \
+  --repo o1/server \
+  --output output/docs/o1--server-deep \
+  --doc-type developer \
+  --include "*.go" \
+  --exclude "*test*" \
+  --focus "core,payment,order,rpc" \
+  --max-depth 4 \
+  --max-token-per-module 1600 \
+  --max-token-per-leaf-module 2600 \
+  --max-tokens 180000 \
+  --concurrency 3 \
+  --instructions "按层次化结构输出；每个模块必须包含：关键函数列表、核心流程(输入/处理/输出)、调用链、错误处理、并发与边界条件；函数说明尽量具体到参数与返回值语义。" \
+  --skills "<你的函数分析skill>,<你的mermaid校验skill>" \
+  --no-cache
+
+
+
 Options:
   --api-key TEXT                  LLM API key. Stored in system keychain if
                                   available, otherwise saved in

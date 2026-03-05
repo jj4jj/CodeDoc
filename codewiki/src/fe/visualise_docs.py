@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import sys
+import re
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -47,8 +48,37 @@ def initialize_globals():
             # The FastAPI endpoints will need to check if DOCS_FOLDER is None
             pass
 
-# Markdown parser (enable GFM-like tables explicitly)
-md = MarkdownIt("commonmark").enable(["table"])
+# Markdown parser (prefer GFM preset for table/list compatibility)
+try:
+    md = MarkdownIt("gfm-like")
+except Exception:
+    md = MarkdownIt("commonmark").enable(["table"])
+
+
+_TABLE_HEADER_RE = re.compile(r"^\|?.+\|.+\|?$")
+_TABLE_SEPARATOR_RE = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$")
+_MERMAID_BLOCK_RE = re.compile(r'<pre><code class="language-mermaid">(.*?)</code></pre>', re.DOTALL)
+
+
+def _normalize_markdown_tables(content: str) -> str:
+    """Insert blank lines before table headers when needed for robust parsing."""
+    lines = content.splitlines()
+    if len(lines) < 2:
+        return content
+
+    normalized = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        next_line = lines[index + 1].strip() if index + 1 < len(lines) else ""
+
+        is_table_header = bool(_TABLE_HEADER_RE.match(stripped))
+        is_table_separator = bool(_TABLE_SEPARATOR_RE.match(next_line))
+        if is_table_header and is_table_separator and normalized and normalized[-1].strip():
+            normalized.append("")
+
+        normalized.append(line)
+
+    return "\n".join(normalized)
 
 
 def load_module_tree(docs_folder: Path) -> Optional[Dict]:
@@ -67,15 +97,13 @@ def load_module_tree(docs_folder: Path) -> Optional[Dict]:
 
 def markdown_to_html(content: str) -> str:
     """Convert markdown content to HTML, with special handling for mermaid diagrams."""
+    content = _normalize_markdown_tables(content)
+
     # First, convert markdown to HTML
     html = md.render(content)
     
     # Post-process to ensure mermaid code blocks are properly formatted
     # Look for code blocks with language-mermaid class and convert them to mermaid divs
-    import re
-    
-    # Pattern to match mermaid code blocks
-    pattern = r'<pre><code class="language-mermaid">(.*?)</code></pre>'
     
     def replace_mermaid(match):
         mermaid_code = match.group(1)
@@ -85,7 +113,7 @@ def markdown_to_html(content: str) -> str:
         return f'<div class="mermaid">{mermaid_code}</div>'
     
     # Replace mermaid code blocks with proper mermaid divs
-    html = re.sub(pattern, replace_mermaid, html, flags=re.DOTALL)
+    html = _MERMAID_BLOCK_RE.sub(replace_mermaid, html)
     
     return html
 

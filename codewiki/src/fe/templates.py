@@ -3,8 +3,319 @@
 HTML templates for the CodeWiki web application.
 """
 
+_SHARED_UI_TOKENS = """
+        :root {
+            --bg: #f3f5f8;
+            --surface: #ffffff;
+            --surface-soft: #eef2f7;
+            --line: #d2d9e2;
+            --line-strong: #bec8d4;
+            --text: #162233;
+            --muted: #5e6c7f;
+            --primary: #2f5b87;
+            --primary-strong: #244768;
+            --primary-soft: #e7edf4;
+            --success: #2f714f;
+            --warning: #856020;
+            --danger: #9a3d36;
+            --shadow: 0 1px 2px rgba(22, 34, 51, 0.06);
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        [data-theme="dark"] {
+            --bg: #111823;
+            --surface: #172334;
+            --surface-soft: #1c2a3d;
+            --line: #2b3e56;
+            --line-strong: #385170;
+            --text: #e6edf7;
+            --muted: #9bacc4;
+            --primary: #7cb0de;
+            --primary-strong: #5d96c7;
+            --primary-soft: #20334a;
+            --success: #58b283;
+            --warning: #d5a35d;
+            --danger: #e0867e;
+            --shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+"""
+
+_SHARED_UI_LAYOUT = """
+        body {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.55;
+        }
+
+        .app {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 18px 20px 26px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 14px 16px;
+            min-height: 72px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-size: 1.04rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 0.02em;
+        }
+
+        .brand svg {
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--muted);
+            border: 1px solid var(--line);
+            background: var(--surface);
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.84rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+        }
+
+        .nav a svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .nav a.active {
+            color: var(--primary);
+            border-color: var(--line-strong);
+            background: var(--primary-soft);
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--muted);
+            text-decoration: none;
+            cursor: pointer;
+            padding: 7px 11px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            transition: 0.14s ease;
+        }
+
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+        }
+
+        .icon-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .theme-toggle-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        [data-theme="light"] .theme-icon-dark {
+            display: none;
+        }
+
+        [data-theme="dark"] .theme-icon-light {
+            display: none;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            color: var(--primary);
+            border-color: var(--line-strong);
+            background: var(--primary-soft);
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            color: #fff;
+            background: var(--primary-strong);
+            border-color: var(--primary-strong);
+        }
+
+        .btn-danger {
+            color: var(--danger);
+            border-color: #dcb8b5;
+        }
+
+        .btn-danger:hover {
+            color: var(--danger);
+            background: #f9efee;
+            border-color: #c79b97;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .field input,
+        .field select,
+        .field textarea,
+        .search {
+            width: 100%;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--text);
+            padding: 8px 10px;
+            font-size: 0.86rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus,
+        .search:focus {
+            outline: none;
+            border-color: var(--line-strong);
+        }
+
+        .alert {
+            margin-bottom: 12px;
+            border: 1px solid #dfbebc;
+            background: #fbf1f0;
+            color: var(--danger);
+            padding: 8px 10px;
+            font-size: 0.87rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .alert-success {
+            border-color: #bfdbc9;
+            background: #eef8f1;
+            color: var(--success);
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .empty {
+            border: 1px dashed var(--line-strong);
+            background: var(--surface-soft);
+            color: var(--muted);
+            text-align: center;
+            padding: 24px 16px;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+        }
+
+        @media (max-width: 940px) {
+            .app {
+                padding: 12px;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .topbar-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+"""
+
+
+def _inject_shared_ui(template: str) -> str:
+    """Inject shared design tokens and layout primitives into templates."""
+    return (
+        template
+        .replace("__CW_SHARED_UI_TOKENS__", _SHARED_UI_TOKENS)
+        .replace("__CW_SHARED_UI_LAYOUT__", _SHARED_UI_LAYOUT)
+    )
+
+
+def _inject_shared_tokens(template: str) -> str:
+    """Inject only shared design tokens for standalone layouts."""
+    return template.replace("__CW_SHARED_UI_TOKENS__", _SHARED_UI_TOKENS)
+
 # Web interface HTML template
-WEB_INTERFACE_TEMPLATE = """
+WEB_INTERFACE_TEMPLATE = _inject_shared_ui("""
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -12,143 +323,42 @@ WEB_INTERFACE_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodeWiki 文档中心</title>
     <style>
-        :root {
-            --bg: #f4f6f8;
-            --panel: #ffffff;
-            --line: #dbe1e8;
-            --text: #132033;
-            --muted: #5f6f82;
-            --primary: #1f4d7a;
-            --primary-soft: #e8f0f7;
-            --success: #177245;
-            --warning: #9a5e00;
-            --danger: #b42318;
-        }
-
-        [data-theme="dark"] {
-            --bg: #0f1722;
-            --panel: #162131;
-            --line: #263a52;
-            --text: #e6edf7;
-            --muted: #99abc2;
-            --primary: #63a5df;
-            --primary-soft: #1b2d44;
-            --success: #46bf83;
-            --warning: #e2a341;
-            --danger: #f08980;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-            color: var(--text);
-            background: var(--bg);
-            line-height: 1.5;
-            padding: 20px;
-        }
-
-        .app { max-width: 1200px; margin: 0 auto; }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 14px;
-        }
-
-        .brand {
-            font-size: 1rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            color: var(--primary);
-        }
-
-        .topbar-right { display: flex; align-items: center; gap: 8px; }
-
-        .nav { display: flex; gap: 8px; }
-
-        .nav a {
-            text-decoration: none;
-            color: var(--muted);
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            padding: 6px 12px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            background: var(--panel);
-        }
-
-        .nav a.active {
-            color: var(--primary);
-            background: var(--primary-soft);
-            border-color: var(--line);
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 0.86rem;
-            font-weight: 600;
-            cursor: pointer;
-            background: var(--panel);
-            color: var(--muted);
-        }
-
-        .btn:hover { background: var(--primary-soft); color: var(--primary); }
-
+__CW_SHARED_UI_TOKENS__
+__CW_SHARED_UI_LAYOUT__
         .hero {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 16px;
             margin-bottom: 12px;
         }
 
-        .hero h1 { font-size: 1.3rem; margin-bottom: 4px; }
-        .hero p { color: var(--muted); font-size: 0.9rem; margin-bottom: 10px; }
-
-        .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-        .alert {
-            margin-bottom: 12px;
-            border-radius: 8px;
-            border: 1px solid transparent;
-            padding: 8px 10px;
-            font-size: 0.88rem;
-            background: var(--panel);
+        .hero h1 {
+            font-size: 1.34rem;
+            margin-bottom: 4px;
+            letter-spacing: 0.01em;
         }
 
-        .alert-success {
-            background: color-mix(in srgb, var(--success) 13%, var(--panel));
-            color: var(--success);
-            border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+        .hero p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
         }
 
-        .alert-error {
-            background: color-mix(in srgb, var(--danger) 12%, var(--panel));
-            color: var(--danger);
-            border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
-        .panel {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 16px;
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 14px;
         }
 
-        .list-head {
+        .main-pane,
+        .side-pane {
+            min-width: 0;
+        }
+
+        .panel-head {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -156,44 +366,47 @@ WEB_INTERFACE_TEMPLATE = """
             margin-bottom: 10px;
         }
 
-        .list-head h2 { font-size: 1.06rem; }
-        .list-head span { font-size: 0.82rem; color: var(--muted); }
-
-        .list-tools { display: flex; gap: 8px; margin-bottom: 10px; }
-
-        .search {
-            flex: 1;
-            min-width: 0;
-            padding: 9px 10px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            font-size: 0.88rem;
-            background: var(--panel);
-            color: var(--text);
+        .panel-head h2 {
+            font-size: 1.03rem;
         }
 
-        .search:focus { outline: none; border-color: var(--primary); }
+        .panel-head span {
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .list-tools {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .list-tools .search {
+            flex: 1;
+            min-width: 0;
+        }
 
         .jobs {
             display: grid;
-            gap: 8px;
-            max-height: calc(100vh - 250px);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            max-height: calc(100vh - 290px);
             overflow: auto;
             padding-right: 2px;
         }
 
         .job {
             border: 1px solid var(--line);
-            border-radius: 8px;
+            background: var(--surface);
             padding: 10px;
-            background: var(--panel);
+            border-radius: var(--radius-sm);
         }
 
         .job-head {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             gap: 8px;
-            align-items: start;
         }
 
         .job-title {
@@ -203,38 +416,63 @@ WEB_INTERFACE_TEMPLATE = """
             margin-bottom: 2px;
         }
 
-        .job-url { font-size: 0.78rem; color: var(--muted); word-break: break-word; }
-
-        .badge {
-            font-size: 0.72rem;
-            font-weight: 700;
-            border-radius: 999px;
-            padding: 3px 8px;
-            border: 1px solid transparent;
-            white-space: nowrap;
-            text-transform: uppercase;
+        .job-url {
+            font-size: 0.78rem;
+            color: var(--muted);
+            word-break: break-word;
         }
 
-        .status-completed { color: var(--success); background: color-mix(in srgb, var(--success) 12%, var(--panel)); border-color: color-mix(in srgb, var(--success) 40%, var(--line)); }
-        .status-processing { color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, var(--panel)); border-color: color-mix(in srgb, var(--primary) 40%, var(--line)); }
-        .status-queued { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, var(--panel)); border-color: color-mix(in srgb, var(--warning) 40%, var(--line)); }
-        .status-failed { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--panel)); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            padding: 2px 7px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .status-completed {
+            color: var(--success);
+            border-color: #bfd8c9;
+            background: #ecf7f0;
+        }
+
+        .status-processing {
+            color: var(--primary);
+            border-color: #c6d4e5;
+            background: #edf3fa;
+        }
+
+        .status-queued {
+            color: var(--warning);
+            border-color: #dfcfaf;
+            background: #f9f4ea;
+        }
+
+        .status-failed {
+            color: var(--danger);
+            border-color: #dfc0bd;
+            background: #fbf1f0;
+        }
 
         .job-meta {
-            margin-top: 7px;
-            font-size: 0.76rem;
-            color: var(--muted);
+            margin-top: 8px;
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
+            color: var(--muted);
+            font-size: 0.75rem;
         }
 
         .job-progress {
-            margin-top: 7px;
+            margin-top: 8px;
             border-top: 1px dashed var(--line);
-            padding-top: 7px;
-            font-size: 0.8rem;
+            padding-top: 8px;
             color: var(--muted);
+            font-size: 0.79rem;
             word-break: break-word;
         }
 
@@ -244,36 +482,142 @@ WEB_INTERFACE_TEMPLATE = """
             justify-content: flex-end;
         }
 
-        .empty {
-            border: 1px dashed var(--line);
-            border-radius: 8px;
-            background: var(--panel);
-            color: var(--muted);
-            text-align: center;
-            padding: 24px 16px;
-            font-size: 0.9rem;
+        .side-pane h3 {
+            font-size: 0.95rem;
+            margin-bottom: 10px;
         }
 
-        @media (max-width: 760px) {
-            body { padding: 12px; }
-            .topbar { flex-direction: column; align-items: flex-start; }
-            .topbar-right { width: 100%; justify-content: space-between; }
-            .list-head { flex-direction: column; align-items: flex-start; }
-            .job-head { flex-direction: column; }
-            .jobs { max-height: none; }
+        .quick-note {
+            margin-bottom: 10px;
+            border: 1px solid var(--line);
+            background: var(--surface-soft);
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            color: var(--muted);
+            border-radius: var(--radius-sm);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .summary-card {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .summary-value {
+            font-size: 1.12rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .summary-label {
+            color: var(--muted);
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .mini-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .mini-item {
+            border: 1px solid var(--line);
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+        }
+
+        .mini-item a {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.82rem;
+        }
+
+        .mini-item p {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 0.75rem;
+            word-break: break-word;
+        }
+
+        @media (max-width: 1180px) {
+            .jobs {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 940px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .jobs {
+                max-height: none;
+            }
+
+            .panel-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .job-head {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="app">
         <header class="topbar">
-            <div class="brand">CodeWiki 文档中心</div>
+            <a class="brand" href="/" aria-label="CodeWiki 文档中心">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="2.5" y="3" width="8.2" height="8.2" rx="1.4" fill="#2f5b87"/>
+                    <rect x="13.3" y="3" width="8.2" height="8.2" rx="1.4" fill="#6c8fb0"/>
+                    <rect x="2.5" y="12.8" width="8.2" height="8.2" rx="1.4" fill="#7aa1c6"/>
+                    <rect x="13.3" y="12.8" width="8.2" height="8.2" rx="1.4" fill="#244768"/>
+                </svg>
+                <span>CodeWiki 文档中心</span>
+            </a>
             <div class="topbar-right">
                 <nav class="nav">
-                    <a class="active" href="/">首页</a>
-                    <a href="/admin">控制台</a>
+                    <a class="active" href="/" title="首页" aria-label="首页">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 10.6L12 4l8 6.6V20H4v-9.4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                            <path d="M9.5 20v-5.4h5V20" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    <a href="/admin" title="控制台" aria-label="控制台">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="3.5" y="3.5" width="17" height="17" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M8 9h8M8 12h8M8 15h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </a>
                 </nav>
-                <button id="themeToggle" class="btn" type="button">深色模式</button>
+                <button id="themeToggle" class="btn icon-btn" type="button" title="切换主题" aria-label="切换主题">
+                    <span class="theme-toggle-icon theme-icon-light" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 4.2v2.1M12 17.7v2.1M4.2 12h2.1M17.7 12h2.1M6.4 6.4l1.5 1.5M16.1 16.1l1.5 1.5M17.6 6.4l-1.5 1.5M7.9 16.1l-1.5 1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                            <circle cx="12" cy="12" r="3.7" stroke="currentColor" stroke-width="1.7"/>
+                        </svg>
+                    </span>
+                    <span class="theme-toggle-icon theme-icon-dark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M14.8 4.4a7.9 7.9 0 1 0 4.8 14.2 8.2 8.2 0 0 1-4.8-14.2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="sr-only">切换主题</span>
+                </button>
             </div>
         </header>
 
@@ -289,53 +633,83 @@ WEB_INTERFACE_TEMPLATE = """
         <div class="alert alert-{{ message_type }}">{{ message }}</div>
         {% endif %}
 
-        <section class="panel">
-            <div class="list-head">
-                <h2>可访问文档</h2>
-                <span>{{ recent_jobs|length }} 项</span>
-            </div>
+        <section class="workspace">
+            <div class="panel main-pane">
+                <div class="panel-head">
+                    <h2>可访问文档</h2>
+                    <span>{{ recent_jobs|length }} 项</span>
+                </div>
 
-            {% if recent_jobs %}
-            <div class="list-tools">
-                <input id="jobFilter" class="search" type="text" placeholder="按仓库、任务 ID、进度搜索...">
-                <button class="btn" type="button" id="refreshBtn">刷新</button>
-            </div>
+                {% if recent_jobs %}
+                <div class="list-tools">
+                    <input id="jobFilter" class="search" type="text" placeholder="按仓库、任务 ID、进度搜索...">
+                    <button class="btn" type="button" id="refreshBtn">刷新</button>
+                </div>
 
-            <div class="jobs" id="jobsContainer">
-                {% for job in recent_jobs %}
-                <article class="job" data-search="{{ (job.title or '') ~ ' ' ~ job.repo_url ~ ' ' ~ job.job_id ~ ' ' ~ (job.progress or '') ~ ' ' ~ ((job.options.subproject_name if job.options and job.options.subproject_name else '') ) ~ ' ' ~ ((job.options.subproject_path if job.options and job.options.subproject_path else '') ) }}">
-                    <div class="job-head">
-                        <div>
-                            <div class="job-title">{{ job.title or job.repo_url.split('/')[-1] }}</div>
-                            <div class="job-url">{{ job.repo_url }}</div>
-                            {% if job.options and (job.options.subproject_name or job.options.subproject_path) %}
-                            <div class="job-url">子项目: {{ job.options.subproject_name or job.options.subproject_path }}</div>
-                            {% endif %}
+                <div class="jobs" id="jobsContainer">
+                    {% for job in recent_jobs %}
+                    <article class="job" data-search="{{ (job.title or '') ~ ' ' ~ job.repo_url ~ ' ' ~ job.job_id ~ ' ' ~ (job.progress or '') ~ ' ' ~ ((job.options.subproject_name if job.options and job.options.subproject_name else '') ) ~ ' ' ~ ((job.options.subproject_path if job.options and job.options.subproject_path else '') ) }}">
+                        <div class="job-head">
+                            <div>
+                                <div class="job-title">{{ job.title or job.repo_url.split('/')[-1] }}</div>
+                                <div class="job-url">{{ job.repo_url }}</div>
+                                {% if job.options and (job.options.subproject_name or job.options.subproject_path) %}
+                                <div class="job-url">子项目: {{ job.options.subproject_name or job.options.subproject_path }}</div>
+                                {% endif %}
+                            </div>
+                            <span class="badge status-{{ job.status }}">{{ job.status|upper }}</span>
                         </div>
-                        <span class="badge status-{{ job.status }}">{{ job.status|upper }}</span>
-                    </div>
 
-                    <div class="job-meta">
-                        <span>任务 ID: {{ job.job_id }}</span>
-                        {% if job.commit_id %}
-                        <span>Commit: {{ job.commit_id[:10] }}</span>
+                        <div class="job-meta">
+                            <span>任务 ID: {{ job.job_id }}</span>
+                            {% if job.commit_id %}
+                            <span>Commit: {{ job.commit_id[:10] }}</span>
+                            {% endif %}
+                            <span>{{ (job.completed_at or job.created_at).strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+
+                        {% if job.progress %}
+                        <div class="job-progress">{{ job.progress }}</div>
                         {% endif %}
-                        <span>{{ (job.completed_at or job.created_at).strftime('%Y-%m-%d %H:%M') }}</span>
-                    </div>
 
-                    {% if job.progress %}
-                    <div class="job-progress">{{ job.progress }}</div>
-                    {% endif %}
-
-                    <div class="job-actions">
-                        <a href="/docs/{{ job.job_id }}" class="btn">查看文档</a>
-                    </div>
-                </article>
-                {% endfor %}
+                        <div class="job-actions">
+                            <a href="/docs/{{ job.job_id }}" class="btn">查看文档</a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty">暂无可访问文档，请先到控制台创建任务。</div>
+                {% endif %}
             </div>
-            {% else %}
-            <div class="empty">暂无可访问文档，请先到控制台创建任务。</div>
-            {% endif %}
+
+            <aside class="panel side-pane">
+                <h3>快速浏览</h3>
+                <div class="quick-note">支持按关键词快速筛选文档任务，右侧展示近期访问仓库入口。</div>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-value">{{ recent_jobs|length }}</div>
+                        <div class="summary-label">文档总数</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">{{ recent_jobs|selectattr("status", "equalto", "completed")|list|length }}</div>
+                        <div class="summary-label">已完成</div>
+                    </div>
+                </div>
+
+                <div class="mini-list">
+                    {% for job in recent_jobs[:8] %}
+                    <div class="mini-item">
+                        <a href="/docs/{{ job.job_id }}">{{ job.title or job.repo_url.split('/')[-1] }}</a>
+                        <p>{{ (job.options.subproject_name if job.options and job.options.subproject_name else (job.options.subproject_path if job.options and job.options.subproject_path else "仓库根目录")) }}</p>
+                    </div>
+                    {% endfor %}
+                    {% if not recent_jobs %}
+                    <div class="empty">暂无可展示条目</div>
+                    {% endif %}
+                </div>
+            </aside>
         </section>
     </div>
 
@@ -346,7 +720,9 @@ WEB_INTERFACE_TEMPLATE = """
             document.documentElement.setAttribute("data-theme", theme);
             const btn = document.getElementById("themeToggle");
             if (btn) {
-                btn.textContent = theme === "dark" ? "浅色模式" : "深色模式";
+                const nextLabel = theme === "dark" ? "切换到浅色模式" : "切换到深色模式";
+                btn.setAttribute("title", nextLabel);
+                btn.setAttribute("aria-label", nextLabel);
             }
         }
 
@@ -392,10 +768,10 @@ WEB_INTERFACE_TEMPLATE = """
     </script>
 </body>
 </html>
-"""
+""")
 
 # HTML template for the documentation pages
-DOCS_VIEW_TEMPLATE = """
+DOCS_VIEW_TEMPLATE = _inject_shared_tokens("""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -404,321 +780,304 @@ DOCS_VIEW_TEMPLATE = """
     <title>{{ title }}</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11.9.0/dist/mermaid.min.js"></script>
     <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #f1f5f9;
-            --text-color: #334155;
-            --border-color: #e2e8f0;
-            --hover-color: #f8fafc;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+__CW_SHARED_UI_TOKENS__
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            background-color: #ffffff;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background: var(--bg);
         }
-        
-        .container {
+
+        .docs-shell {
             display: flex;
             min-height: 100vh;
         }
-        
+
         .sidebar {
-            width: 300px;
-            background-color: var(--secondary-color);
-            border-right: 1px solid var(--border-color);
-            padding: 20px;
+            width: 308px;
+            background: var(--surface-soft);
+            border-right: 1px solid var(--line);
+            padding: 18px;
             overflow-y: auto;
             position: fixed;
-            height: 100vh;
+            inset: 0 auto 0 0;
         }
-        
+
         .content {
             flex: 1;
-            margin-left: 300px;
-            padding: 40px 60px;
-            max-width: calc(100% - 300px);
+            margin-left: 308px;
+            padding: 28px 38px;
+            min-width: 0;
         }
-        
+
         .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-bottom: 12px;
-            text-decoration: none;
             display: block;
+            text-decoration: none;
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 10px;
         }
 
         .home-link {
-            display: inline-block;
-            font-size: 12px;
-            color: #64748b;
+            display: inline-flex;
+            align-items: center;
             text-decoration: none;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            background: var(--surface);
+            padding: 5px 9px;
+            font-size: 0.78rem;
             margin-bottom: 14px;
-            border: 1px solid #d8e2ee;
-            border-radius: 999px;
-            padding: 4px 10px;
+            border-radius: var(--radius-sm);
         }
 
         .home-link:hover {
-            color: var(--primary-color);
-            background: #f8fafc;
+            color: var(--primary);
+            border-color: var(--line-strong);
+            background: var(--primary-soft);
+        }
+
+        .sidebar-info {
+            margin-bottom: 14px;
+            padding: 10px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+        }
+
+        .sidebar-info h4 {
+            margin-bottom: 7px;
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .sidebar-info-row {
+            font-size: 0.76rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+            line-height: 1.45;
+        }
+
+        .sidebar-info-row strong {
+            color: var(--text);
+            font-weight: 600;
         }
 
         .sidebar-control {
-            margin: 12px 0 16px 0;
+            margin-bottom: 12px;
         }
 
         .sidebar-control-label {
             display: block;
-            font-size: 12px;
-            color: #64748b;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-weight: 600;
         }
 
-        .sidebar-control-input {
+        .sidebar-control-input,
+        .sidebar-control-readonly {
             width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #c9d5e3;
-            border-radius: 6px;
-            font-size: 13px;
-            background: #fff;
-            color: #334155;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--text);
+            padding: 8px 9px;
+            font-size: 0.8rem;
+            border-radius: var(--radius-sm);
         }
 
         .sidebar-control-readonly {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #c9d5e3;
-            border-radius: 6px;
-            font-size: 13px;
-            background: #fff;
-            color: #334155;
-            line-height: 1.2;
             min-height: 34px;
             display: flex;
             align-items: center;
         }
-        
+
         .nav-section {
-            margin-bottom: 25px;
-        }
-        
-        .nav-section h3 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
             margin-bottom: 10px;
         }
-        
+
         .nav-item {
             display: block;
-            padding: 8px 12px;
-            color: var(--text-color);
             text-decoration: none;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            margin-bottom: 2px;
+            color: var(--text);
+            padding: 7px 10px;
+            margin-bottom: 4px;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            font-size: 0.86rem;
         }
-        
+
         .nav-item:hover {
-            background-color: var(--hover-color);
-            color: var(--primary-color);
+            color: var(--primary);
+            background: var(--primary-soft);
+            border-color: var(--line);
         }
-        
+
         .nav-item.active {
-            background-color: var(--primary-color);
-            color: white;
+            color: #fff;
+            background: var(--primary);
+            border-color: var(--primary);
         }
-        
+
         .nav-subsection {
-            margin-left: 15px;
-            margin-top: 8px;
+            margin-left: 12px;
         }
-        
+
         .nav-subsection .nav-item {
-            font-size: 13px;
-            color: #64748b;
+            font-size: 0.82rem;
         }
-        
+
         .nav-section-header {
-            font-size: 14px;
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            color: var(--muted);
+            font-size: 0.78rem;
             font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 10px;
-            padding: 8px 12px;
+            border-left: 2px solid var(--line);
         }
-        
-        /* Nested subsection indentation - scalable for any depth */
-        .nav-subsection .nav-subsection {
-            margin-left: 20px;
-        }
-        
-        .nav-subsection .nav-subsection .nav-item {
-            font-size: 12px;
-        }
-        
-        /* Additional nesting levels */
-        .nav-subsection .nav-subsection .nav-subsection {
-            margin-left: 15px;
-        }
-        
-        .nav-subsection .nav-subsection .nav-subsection .nav-item {
-            font-size: 11px;
-        }
-        
+
         .markdown-content {
-            max-width: none;
+            max-width: 1200px;
         }
-        
+
         .markdown-content h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 0.5rem;
+            font-size: 2.28rem;
+            margin-bottom: 0.9rem;
+            padding-bottom: 0.45rem;
+            border-bottom: 1px solid var(--line);
         }
-        
+
         .markdown-content h2 {
-            font-size: 2rem;
-            font-weight: 600;
-            color: #334155;
+            font-size: 1.84rem;
             margin-top: 2rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
+            color: var(--text);
         }
-        
+
         .markdown-content h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #475569;
+            font-size: 1.34rem;
             margin-top: 1.5rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .markdown-content p,
+        .markdown-content li {
+            color: var(--text);
             margin-bottom: 0.75rem;
         }
-        
-        .markdown-content p {
+
+        .markdown-content ul,
+        .markdown-content ol {
+            padding-left: 1.35rem;
             margin-bottom: 1rem;
-            color: #475569;
         }
-        
-        .markdown-content ul, .markdown-content ol {
-            margin-bottom: 1rem;
-            padding-left: 1.5rem;
-        }
-        
-        .markdown-content li {
-            margin-bottom: 0.5rem;
-            color: #475569;
-        }
-        
+
         .markdown-content code {
-            background-color: #f1f5f9;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-family: 'Fira Code', 'Consolas', monospace;
-            font-size: 0.875rem;
+            background: var(--surface-soft);
+            border: 1px solid var(--line);
+            padding: 0.14rem 0.38rem;
+            border-radius: var(--radius-sm);
+            font-family: "Courier New", Consolas, monospace;
+            font-size: 0.86em;
         }
-        
+
         .markdown-content pre {
-            background-color: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            overflow-x: auto;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 12px;
             margin-bottom: 1rem;
+            overflow-x: auto;
+            border-radius: var(--radius-sm);
         }
-        
+
         .markdown-content pre code {
-            background-color: transparent;
+            border: none;
+            background: transparent;
             padding: 0;
         }
-        
+
         .markdown-content blockquote {
-            border-left: 4px solid var(--primary-color);
-            padding-left: 1rem;
-            margin-bottom: 1rem;
-            font-style: italic;
-            color: #64748b;
+            margin: 1rem 0;
+            padding: 0.7rem 0.95rem;
+            border-left: 3px solid var(--line-strong);
+            background: var(--surface-soft);
+            color: var(--muted);
         }
-        
+
         .markdown-content table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 1rem;
-            display: block;
-            overflow-x: auto;
-            white-space: nowrap;
+            font-size: 0.88rem;
         }
-        
-        .markdown-content th, .markdown-content td {
-            border: 1px solid var(--border-color);
-            padding: 0.75rem;
+
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid var(--line);
+            padding: 0.58rem 0.68rem;
             text-align: left;
+            vertical-align: top;
         }
-        
+
         .markdown-content th {
-            background-color: var(--secondary-color);
-            font-weight: 600;
+            background: var(--surface-soft);
+            font-weight: 700;
         }
-        
+
         .markdown-content a {
-            color: var(--primary-color);
+            color: var(--primary);
             text-decoration: underline;
+            text-decoration-color: #9cb4ce;
         }
-        
-        .markdown-content a:hover {
-            text-decoration: none;
+
+        .mermaid {
+            margin: 1rem 0;
+            padding: 10px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            overflow-x: auto;
         }
-        
-        @media (max-width: 768px) {
+
+        @media (max-width: 920px) {
             .sidebar {
                 width: 100%;
                 position: relative;
                 height: auto;
             }
-            
+
             .content {
                 margin-left: 0;
-                padding: 20px;
-                max-width: 100%;
+                padding: 16px;
+            }
+
+            .docs-shell {
+                display: block;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="docs-shell">
         <nav class="sidebar">
-            <a href="/static-docs/{{ job_id }}/overview.md{{ query_suffix }}" class="logo">📚 {{ repo_name }}</a>
+            <a href="/static-docs/{{ job_id }}/overview.md{{ query_suffix }}" class="logo">{{ repo_name }}</a>
             <a href="{{ docs_home_url or '/' }}" class="home-link">← 返回文档中心</a>
             
             {% if metadata and metadata.generation_info %}
-            <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <h4 style="margin: 0 0 10px 0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Generation Info</h4>
-                <div style="font-size: 11px; color: #475569; line-height: 1.4;">
-                    <div style="margin-bottom: 4px;"><strong>Model:</strong> {{ metadata.generation_info.main_model }}</div>
-                    <div style="margin-bottom: 4px;"><strong>Generated:</strong> {{ metadata.generation_info.timestamp[:16] }}</div>
+            <div class="sidebar-info">
+                <h4>Generation Info</h4>
+                <div class="sidebar-info-row"><strong>Model:</strong> {{ metadata.generation_info.main_model }}</div>
+                <div class="sidebar-info-row"><strong>Generated:</strong> {{ metadata.generation_info.timestamp[:16] }}</div>
                     {% if metadata.generation_info.commit_id %}
-                    <div style="margin-bottom: 4px;"><strong>Commit:</strong> {{ metadata.generation_info.commit_id[:8] }}</div>
+                    <div class="sidebar-info-row"><strong>Commit:</strong> {{ metadata.generation_info.commit_id[:8] }}</div>
                     {% endif %}
                     {% if metadata.statistics %}
-                    <div><strong>Components:</strong> {{ metadata.statistics.total_components }}</div>
+                    <div class="sidebar-info-row"><strong>Components:</strong> {{ metadata.statistics.total_components }}</div>
                     {% endif %}
-                </div>
             </div>
             {% endif %}
 
@@ -822,15 +1181,15 @@ DOCS_VIEW_TEMPLATE = """
             startOnLoad: true,
             theme: 'default',
             themeVariables: {
-                primaryColor: '#2563eb',
-                primaryTextColor: '#334155',
-                primaryBorderColor: '#e2e8f0',
-                lineColor: '#64748b',
-                sectionBkgColor: '#f8fafc',
-                altSectionBkgColor: '#f1f5f9',
-                gridColor: '#e2e8f0',
-                secondaryColor: '#f1f5f9',
-                tertiaryColor: '#f8fafc'
+                primaryColor: '#e7edf4',
+                primaryTextColor: '#162233',
+                primaryBorderColor: '#d2d9e2',
+                lineColor: '#5e6c7f',
+                sectionBkgColor: '#eef2f7',
+                altSectionBkgColor: '#ffffff',
+                gridColor: '#d2d9e2',
+                secondaryColor: '#eef2f7',
+                tertiaryColor: '#ffffff'
             },
             flowchart: {
                 htmlLabels: true,
@@ -902,9 +1261,9 @@ DOCS_VIEW_TEMPLATE = """
     </script>
 </body>
 </html>
-"""
+""")
 
-ADMIN_TEMPLATE = """
+ADMIN_TEMPLATE = _inject_shared_ui("""
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -912,128 +1271,25 @@ ADMIN_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodeWiki 控制台</title>
     <style>
-        :root {
-            --bg: #f4f6f8;
-            --panel: #ffffff;
-            --line: #dbe1e8;
-            --text: #132033;
-            --muted: #5f6f82;
-            --primary: #1f4d7a;
-            --primary-soft: #e8f0f7;
-            --success: #177245;
-            --warning: #9a5e00;
-            --danger: #b42318;
-            --info: #1e4e8c;
+__CW_SHARED_UI_TOKENS__
+__CW_SHARED_UI_LAYOUT__
+        .app {
+            max-width: 1460px;
         }
-
-        [data-theme="dark"] {
-            --bg: #0f1722;
-            --panel: #162131;
-            --line: #263a52;
-            --text: #e6edf7;
-            --muted: #99abc2;
-            --primary: #63a5df;
-            --primary-soft: #1b2d44;
-            --success: #46bf83;
-            --warning: #e2a341;
-            --danger: #f08980;
-            --info: #78b8f2;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-            color: var(--text);
-            background: var(--bg);
-            line-height: 1.5;
-            padding: 20px;
-        }
-
-        .app { max-width: 1240px; margin: 0 auto; }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 14px;
-        }
-
-        .brand {
-            font-size: 1rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            color: var(--primary);
-        }
-
-        .topbar-right { display: flex; align-items: center; gap: 8px; }
-
-        .nav { display: flex; gap: 8px; }
-
-        .nav a {
-            text-decoration: none;
-            color: var(--muted);
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            padding: 6px 12px;
-            font-size: 0.88rem;
-            font-weight: 600;
-            background: var(--panel);
-        }
-
-        .nav a.active {
-            color: var(--primary);
-            background: var(--primary-soft);
-            border-color: var(--line);
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            background: var(--panel);
-            color: var(--muted);
-        }
-
-        .btn:hover { background: var(--primary-soft); color: var(--primary); }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        .btn-primary:hover { background: color-mix(in srgb, var(--primary) 85%, #000 15%); color: #fff; }
-
-        .btn-danger {
-            color: var(--danger);
-            border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
-        }
-
-        .btn-danger:hover { background: color-mix(in srgb, var(--danger) 10%, var(--panel)); color: var(--danger); }
 
         .hero {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 16px;
             margin-bottom: 12px;
         }
 
-        .hero h1 { font-size: 1.3rem; margin-bottom: 4px; }
-        .hero p { color: var(--muted); font-size: 0.9rem; }
+        .hero h1 {
+            font-size: 1.35rem;
+            margin-bottom: 4px;
+        }
+
+        .hero p {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
 
         .stats {
             display: grid;
@@ -1043,111 +1299,69 @@ ADMIN_TEMPLATE = """
         }
 
         .stat {
-            background: var(--panel);
             border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 12px;
+            background: var(--surface);
+            padding: 10px;
+            border-radius: var(--radius-sm);
         }
 
         .stat .value {
-            font-size: 1.35rem;
+            font-size: 1.28rem;
             font-weight: 700;
             margin-bottom: 2px;
         }
 
         .stat .label {
-            font-size: 0.82rem;
             color: var(--muted);
+            font-size: 0.74rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
         }
 
         .stat.queued .value { color: var(--warning); }
-        .stat.processing .value { color: var(--info); }
+        .stat.processing .value { color: var(--primary); }
         .stat.completed .value { color: var(--success); }
         .stat.failed .value { color: var(--danger); }
 
         .panel {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 16px;
             margin-bottom: 12px;
         }
 
-        .panel h2 { font-size: 1.08rem; margin-bottom: 10px; }
-
-        .alert {
+        .panel h2 {
+            font-size: 1.06rem;
             margin-bottom: 10px;
-            border-radius: 8px;
-            border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--line));
-            background: color-mix(in srgb, var(--danger) 10%, var(--panel));
-            color: var(--danger);
-            padding: 8px 10px;
-            font-size: 0.88rem;
-        }
-
-        .alert.alert-success {
-            border: 1px solid color-mix(in srgb, var(--success) 45%, var(--line));
-            background: color-mix(in srgb, var(--success) 10%, var(--panel));
-            color: var(--success);
         }
 
         .form-grid {
             display: grid;
-            grid-template-columns: 1fr 210px 130px;
+            grid-template-columns: minmax(0, 1fr) 220px 140px;
             gap: 10px;
         }
 
-        .field { margin-bottom: 10px; }
-
-        .field label {
-            display: block;
-            font-size: 0.83rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: var(--muted);
+        .actions-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
         }
-
-        .field input,
-        .field select,
-        .field textarea {
-            width: 100%;
-            padding: 9px 10px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            font-size: 0.88rem;
-            background: var(--panel);
-            color: var(--text);
-        }
-
-        .field input:focus,
-        .field select:focus,
-        .field textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .actions-row { display: flex; justify-content: flex-end; gap: 8px; }
 
         .options-details {
             margin-bottom: 10px;
             border: 1px solid var(--line);
-            border-radius: 8px;
-            background: var(--panel);
+            background: var(--surface);
             padding: 6px;
+            border-radius: var(--radius-sm);
         }
 
         .options-details summary {
             cursor: pointer;
-            font-weight: 600;
             color: var(--muted);
-            padding: 6px 8px;
+            font-weight: 600;
             list-style: none;
+            padding: 6px 8px;
         }
 
         .options-details summary::-webkit-details-marker { display: none; }
-        .options-details summary::before { content: "+ "; color: var(--muted); }
+        .options-details summary::before { content: "+ "; }
         .options-details[open] summary::before { content: "- "; }
 
         .options-grid {
@@ -1164,54 +1378,70 @@ ADMIN_TEMPLATE = """
             padding-top: 24px;
         }
 
-        .check-field input[type="checkbox"] { width: 16px; height: 16px; }
-        .check-field label { font-size: 0.85rem; color: var(--muted); }
+        .check-field input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
 
-        .task-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+        .check-field label {
+            font-size: 0.84rem;
+            color: var(--muted);
+        }
+
+        .task-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
 
         .task-toolbar input,
         .task-toolbar select {
-            padding: 8px 10px;
             border: 1px solid var(--line);
-            border-radius: 8px;
-            font-size: 0.85rem;
-            background: var(--panel);
+            background: var(--surface);
             color: var(--text);
+            padding: 8px 10px;
+            font-size: 0.84rem;
+            border-radius: var(--radius-sm);
         }
 
-        .task-toolbar input { flex: 1; min-width: 0; }
+        .task-toolbar input {
+            flex: 1;
+            min-width: 0;
+        }
 
         .table-wrap {
             overflow: auto;
             border: 1px solid var(--line);
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.86rem;
-            min-width: 900px;
+            min-width: 920px;
+            font-size: 0.84rem;
         }
 
         th,
         td {
+            border-bottom: 1px solid var(--line);
             text-align: left;
             padding: 9px 10px;
-            border-bottom: 1px solid var(--line);
             vertical-align: top;
         }
 
         th {
-            background: color-mix(in srgb, var(--panel) 88%, var(--line) 12%);
             color: var(--muted);
-            font-size: 0.75rem;
+            background: var(--surface-soft);
+            font-size: 0.74rem;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.05em;
             font-weight: 700;
         }
 
-        tr:last-child td { border-bottom: none; }
+        tr:last-child td {
+            border-bottom: none;
+        }
 
         .task-title {
             font-weight: 700;
@@ -1219,31 +1449,67 @@ ADMIN_TEMPLATE = """
             margin-bottom: 2px;
         }
 
-        .task-url { font-size: 0.76rem; color: var(--muted); word-break: break-word; }
+        .task-url {
+            color: var(--muted);
+            font-size: 0.75rem;
+            word-break: break-word;
+        }
 
         .status {
             display: inline-flex;
-            border-radius: 999px;
-            padding: 3px 8px;
-            font-size: 0.72rem;
-            font-weight: 700;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: var(--radius-sm);
             border: 1px solid transparent;
+            font-size: 0.7rem;
+            font-weight: 700;
             text-transform: uppercase;
         }
 
-        .status.queued { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, var(--panel)); border-color: color-mix(in srgb, var(--warning) 40%, var(--line)); }
-        .status.processing { color: var(--info); background: color-mix(in srgb, var(--info) 12%, var(--panel)); border-color: color-mix(in srgb, var(--info) 40%, var(--line)); }
-        .status.completed { color: var(--success); background: color-mix(in srgb, var(--success) 12%, var(--panel)); border-color: color-mix(in srgb, var(--success) 40%, var(--line)); }
-        .status.failed { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--panel)); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
-        .status.stopped { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, var(--panel)); border-color: color-mix(in srgb, var(--muted) 35%, var(--line)); }
+        .status.queued { color: var(--warning); border-color: #d8c7a4; background: #f9f3e8; }
+        .status.processing { color: var(--primary); border-color: #c4d3e4; background: #ecf3fb; }
+        .status.completed { color: var(--success); border-color: #bfd8c8; background: #ebf7ef; }
+        .status.failed { color: var(--danger); border-color: #dfbebb; background: #fbf1f0; }
+        .status.stopped { color: var(--muted); border-color: #c9d2dd; background: #f0f3f7; }
 
-        .task-progress { color: var(--muted); word-break: break-word; }
-        .task-actions { display: flex; gap: 6px; }
+        .task-progress {
+            color: var(--muted);
+            word-break: break-word;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        details.error {
+            margin-top: 6px;
+        }
+
+        details.error summary {
+            cursor: pointer;
+            color: var(--danger);
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        details.error pre {
+            margin-top: 6px;
+            border: 1px solid #e4c5c2;
+            background: #fbf1f0;
+            color: var(--danger);
+            padding: 8px;
+            font-size: 0.76rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            border-radius: var(--radius-sm);
+        }
 
         .log-modal {
             position: fixed;
             inset: 0;
-            background: rgba(8, 16, 26, 0.5);
+            background: rgba(16, 25, 38, 0.42);
             display: none;
             align-items: center;
             justify-content: center;
@@ -1256,14 +1522,14 @@ ADMIN_TEMPLATE = """
         }
 
         .log-panel {
-            width: min(1000px, 100%);
-            max-height: 80vh;
-            background: var(--panel);
+            width: min(1020px, 100%);
+            max-height: 82vh;
+            background: var(--surface);
             border: 1px solid var(--line);
-            border-radius: 10px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            border-radius: var(--radius-md);
         }
 
         .log-head {
@@ -1271,8 +1537,8 @@ ADMIN_TEMPLATE = """
             justify-content: space-between;
             align-items: center;
             gap: 10px;
-            padding: 10px 12px;
             border-bottom: 1px solid var(--line);
+            padding: 10px 12px;
         }
 
         .log-head strong {
@@ -1281,72 +1547,96 @@ ADMIN_TEMPLATE = """
         }
 
         .log-body {
+            background: var(--surface-soft);
             padding: 10px 12px;
             overflow: auto;
-            background: color-mix(in srgb, var(--panel) 92%, var(--line) 8%);
         }
 
         .log-body pre {
             margin: 0;
+            color: var(--text);
+            font-size: 0.78rem;
+            line-height: 1.46;
             white-space: pre-wrap;
             word-break: break-word;
-            font-size: 0.78rem;
-            line-height: 1.45;
-            color: var(--text);
         }
 
-        .empty {
-            border: 1px dashed var(--line);
-            border-radius: 8px;
-            background: var(--panel);
-            color: var(--muted);
-            text-align: center;
-            padding: 24px 16px;
-            font-size: 0.9rem;
+        @media (max-width: 1160px) {
+            .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .options-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
-        details.error { margin-top: 6px; }
-        details.error summary { cursor: pointer; color: var(--danger); font-weight: 600; font-size: 0.8rem; }
+        @media (max-width: 940px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
 
-        details.error pre {
-            margin-top: 6px;
-            border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--line));
-            border-radius: 6px;
-            padding: 8px;
-            background: color-mix(in srgb, var(--danger) 10%, var(--panel));
-            color: var(--danger);
-            white-space: pre-wrap;
-            font-size: 0.76rem;
-            line-height: 1.4;
-        }
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
 
-        @media (max-width: 1120px) {
-            .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .options-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
+            .stats {
+                grid-template-columns: 1fr;
+            }
 
-        @media (max-width: 760px) {
-            body { padding: 12px; }
-            .topbar { flex-direction: column; align-items: flex-start; }
-            .topbar-right { width: 100%; justify-content: space-between; }
-            .form-grid { grid-template-columns: 1fr; }
-            .options-grid { grid-template-columns: 1fr; }
-            .stats { grid-template-columns: 1fr; }
-            .task-toolbar { flex-direction: column; }
+            .task-toolbar {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="app">
         <header class="topbar">
-            <div class="brand">CodeWiki 文档中心</div>
+            <a class="brand" href="/" aria-label="CodeWiki 文档中心">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="2.5" y="3" width="8.2" height="8.2" rx="1.4" fill="#2f5b87"/>
+                    <rect x="13.3" y="3" width="8.2" height="8.2" rx="1.4" fill="#6c8fb0"/>
+                    <rect x="2.5" y="12.8" width="8.2" height="8.2" rx="1.4" fill="#7aa1c6"/>
+                    <rect x="13.3" y="12.8" width="8.2" height="8.2" rx="1.4" fill="#244768"/>
+                </svg>
+                <span>CodeWiki 文档中心</span>
+            </a>
             <div class="topbar-right">
                 <nav class="nav">
-                    <a href="/">首页</a>
-                    <a class="active" href="/admin">控制台</a>
-                    <a href="/api/tasks" target="_blank">任务 API</a>
+                    <a href="/" title="首页" aria-label="首页">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 10.6L12 4l8 6.6V20H4v-9.4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                            <path d="M9.5 20v-5.4h5V20" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    <a class="active" href="/admin" title="控制台" aria-label="控制台">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="3.5" y="3.5" width="17" height="17" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M8 9h8M8 12h8M8 15h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </a>
+                    <a href="/api/tasks" target="_blank" title="任务 API" aria-label="任务 API">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M8.4 7.5h7.2M8.4 12h7.2M8.4 16.5h4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            <path d="M5.5 3.8h13a1.7 1.7 0 0 1 1.7 1.7v13a1.7 1.7 0 0 1-1.7 1.7h-13a1.7 1.7 0 0 1-1.7-1.7v-13a1.7 1.7 0 0 1 1.7-1.7z" stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                    </a>
                 </nav>
-                <button id="themeToggle" class="btn" type="button">深色模式</button>
+                <button id="themeToggle" class="btn icon-btn" type="button" title="切换主题" aria-label="切换主题">
+                    <span class="theme-toggle-icon theme-icon-light" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 4.2v2.1M12 17.7v2.1M4.2 12h2.1M17.7 12h2.1M6.4 6.4l1.5 1.5M16.1 16.1l1.5 1.5M17.6 6.4l-1.5 1.5M7.9 16.1l-1.5 1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                            <circle cx="12" cy="12" r="3.7" stroke="currentColor" stroke-width="1.7"/>
+                        </svg>
+                    </span>
+                    <span class="theme-toggle-icon theme-icon-dark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M14.8 4.4a7.9 7.9 0 1 0 4.8 14.2 8.2 8.2 0 0 1-4.8-14.2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="sr-only">切换主题</span>
+                </button>
             </div>
         </header>
 
@@ -1600,7 +1890,7 @@ ADMIN_TEMPLATE = """
                 <summary>当前模板列表 ({{ doc_type_options|length }})</summary>
                 <div style="margin-top:10px;display:grid;gap:8px;">
                     {% for item in doc_type_options %}
-                    <div style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg-soft);">
+                    <div style="padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface-soft);">
                         <strong>{{ item.name }}</strong>
                         {% if item.display_name %} · {{ item.display_name }}{% endif %}
                         {% if item.built_in %}<span style="color:var(--muted);font-size:12px;">(built-in)</span>{% endif %}
@@ -1722,7 +2012,9 @@ ADMIN_TEMPLATE = """
             document.documentElement.setAttribute("data-theme", theme);
             const btn = document.getElementById("themeToggle");
             if (btn) {
-                btn.textContent = theme === "dark" ? "浅色模式" : "深色模式";
+                const nextLabel = theme === "dark" ? "切换到浅色模式" : "切换到深色模式";
+                btn.setAttribute("title", nextLabel);
+                btn.setAttribute("aria-label", nextLabel);
             }
         }
 
@@ -1953,4 +2245,4 @@ ADMIN_TEMPLATE = """
     </script>
 </body>
 </html>
-"""
+""")
