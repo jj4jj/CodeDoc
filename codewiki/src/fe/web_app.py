@@ -281,11 +281,30 @@ async def view_docs(job_id: str, version: str = "", lang: str = ""):
 
 @app.get("/static-docs/{job_id}/")
 @app.get("/static-docs/{job_id}/{filename:path}")
-async def serve_generated_docs(job_id: str, filename: str = "overview.md", version: str = "", lang: str = ""):
+async def serve_generated_docs(
+    job_id: str,
+    filename: str = "overview.md",
+    version: str = "",
+    lang: str = "",
+):
     """Serve generated documentation files."""
     if not filename: 
         filename = "overview.md"
-    return await web_routes.serve_generated_docs(job_id, filename, version, lang)
+    return await web_routes.serve_generated_docs(job_id, filename, version, lang, content_only=False)
+
+
+@app.get("/static-docs-content/{job_id}/")
+@app.get("/static-docs-content/{job_id}/{filename:path}")
+async def serve_generated_docs_content(
+    job_id: str,
+    filename: str = "overview.md",
+    version: str = "",
+    lang: str = "",
+):
+    """Serve embedded markdown content for docs iframe."""
+    if not filename:
+        filename = "overview.md"
+    return await web_routes.serve_generated_docs(job_id, filename, version, lang, content_only=True)
 
 
 @app.post("/api/docs/{job_id}/chat")

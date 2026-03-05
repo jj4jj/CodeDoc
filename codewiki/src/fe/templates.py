@@ -743,7 +743,7 @@ __CW_SHARED_UI_LAYOUT__
 # HTML template for the documentation pages
 DOCS_VIEW_TEMPLATE = _inject_shared_tokens("""
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -754,10 +754,12 @@ __CW_SHARED_UI_TOKENS__
         :root {
             --chat-panel-width: min(1080px, 86vw);
         }
+
         body {
             font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
             color: var(--text);
             background: var(--bg);
+            line-height: 1.55;
         }
 
         .docs-shell {
@@ -779,13 +781,21 @@ __CW_SHARED_UI_TOKENS__
             flex: 1;
             margin-left: 308px;
             margin-right: 0;
-            padding: 28px 38px;
+            padding: 24px 28px;
             min-width: 0;
             transition: margin-right 0.22s ease;
         }
 
         body.chat-open .content {
             margin-right: var(--chat-panel-width);
+        }
+
+        .docs-content-frame {
+            width: 100%;
+            min-height: 640px;
+            height: calc(100vh - 48px);
+            border: 1px solid var(--line);
+            background: var(--surface);
         }
 
         .chat-panel {
@@ -840,19 +850,61 @@ __CW_SHARED_UI_TOKENS__
         }
 
         .chat-header {
-            padding: 14px 14px 10px;
+            padding: 12px;
             border-bottom: 1px solid var(--line);
             background: var(--surface-soft);
+        }
+
+        .chat-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 6px;
         }
 
         .chat-title {
             font-size: 0.92rem;
             font-weight: 700;
-            margin-bottom: 4px;
+            flex: 0 0 auto;
+        }
+
+        .chat-session-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            flex: 1 1 auto;
+            justify-content: flex-end;
+        }
+
+        .chat-session-select {
+            max-width: 320px;
+            min-width: 180px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--text);
+            padding: 5px 7px;
+            font-size: 0.76rem;
+        }
+
+        .chat-new-session {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 0.76rem;
+            padding: 5px 8px;
+            cursor: pointer;
+        }
+
+        .chat-new-session:hover {
+            color: var(--primary);
+            border-color: var(--line-strong);
+            background: var(--primary-soft);
         }
 
         .chat-subtitle {
-            font-size: 0.76rem;
+            font-size: 0.74rem;
             color: var(--muted);
             line-height: 1.45;
         }
@@ -922,10 +974,10 @@ __CW_SHARED_UI_TOKENS__
             background: var(--primary);
             color: #fff;
             font-weight: 600;
-            border-radius: var(--radius-sm);
             font-size: 0.78rem;
             padding: 7px 12px;
             cursor: pointer;
+            border-radius: var(--radius-sm);
         }
 
         .chat-send:disabled {
@@ -937,7 +989,7 @@ __CW_SHARED_UI_TOKENS__
             display: block;
             text-decoration: none;
             color: var(--primary);
-            font-size: 2rem;
+            font-size: 1.95rem;
             font-weight: 700;
             line-height: 1.2;
             margin-bottom: 10px;
@@ -1179,7 +1231,7 @@ __CW_SHARED_UI_TOKENS__
             }
 
             .content {
-                padding: 22px 24px;
+                padding: 20px 20px;
             }
         }
 
@@ -1193,11 +1245,16 @@ __CW_SHARED_UI_TOKENS__
             .content {
                 margin-left: 0;
                 margin-right: 0;
-                padding: 16px;
+                padding: 14px;
             }
 
             body.chat-open .content {
                 margin-right: 0;
+            }
+
+            .docs-content-frame {
+                height: 65vh;
+                min-height: 400px;
             }
 
             .chat-panel {
@@ -1227,6 +1284,21 @@ __CW_SHARED_UI_TOKENS__
                 bottom: 14px;
             }
 
+            .chat-header-top {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .chat-session-controls {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .chat-session-select {
+                max-width: none;
+                width: 100%;
+            }
+
             .docs-shell {
                 display: block;
             }
@@ -1236,9 +1308,15 @@ __CW_SHARED_UI_TOKENS__
 <body>
     <div class="docs-shell">
         <nav class="sidebar">
-            <a href="/static-docs/{{ job_id }}/overview.md{{ query_suffix }}" class="logo">{{ repo_name }}</a>
+            <a
+                href="{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}/overview.md{{ query_suffix or '' }}"
+                class="logo nav-link {% if current_page == 'overview.md' %}active{% endif %}"
+                data-page="overview.md"
+                data-shell-href="{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}/overview.md{{ query_suffix or '' }}"
+                target="{% if content_frame_url %}docsContentFrame{% endif %}"
+            >{{ repo_name }}</a>
             <a href="{{ docs_home_url or '/' }}" class="home-link">← 返回文档中心</a>
-            
+
             {% if metadata and metadata.generation_info %}
             <div class="sidebar-info">
                 <h4>Generation Info</h4>
@@ -1290,20 +1368,32 @@ __CW_SHARED_UI_TOKENS__
                 <div class="sidebar-control-readonly">{{ current_doc_type }}</div>
             </div>
             {% endif %}
-            
+
             {% if navigation and navigation|length > 0 %}
             <div class="nav-section">
-                <a href="/static-docs/{{ job_id }}/overview.md{{ query_suffix }}" class="nav-item {% if current_page == 'overview.md' %}active{% endif %}">
+                <a
+                    href="{{ content_nav_base or (shell_nav_base or ('/static-docs/' ~ (job_id or ''))) }}/overview.md{{ query_suffix or '' }}"
+                    class="nav-item nav-link {% if current_page == 'overview.md' %}active{% endif %}"
+                    data-page="overview.md"
+                    data-shell-href="{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}/overview.md{{ query_suffix or '' }}"
+                    target="{% if content_frame_url %}docsContentFrame{% endif %}"
+                >
                     Overview
                 </a>
             </div>
-            
+
             {% macro render_nav_item(key, data, depth=0) %}
                 {% set indent_class = 'nav-subsection' if depth > 0 else '' %}
                 {% set indent_style = 'margin-left: ' + (depth * 15)|string + 'px;' if depth > 0 else '' %}
                 <div class="{{ indent_class }}" {% if indent_style %}style="{{ indent_style }}"{% endif %}>
                     {% if data.components %}
-                        <a href="/static-docs/{{ job_id }}/{{ key }}.md{{ query_suffix }}" class="nav-item {% if current_page == key + '.md' %}active{% endif %}">
+                        <a
+                            href="{{ content_nav_base or (shell_nav_base or ('/static-docs/' ~ (job_id or ''))) }}/{{ key }}.md{{ query_suffix or '' }}"
+                            class="nav-item nav-link {% if current_page == key + '.md' %}active{% endif %}"
+                            data-page="{{ key }}.md"
+                            data-shell-href="{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}/{{ key }}.md{{ query_suffix or '' }}"
+                            target="{% if content_frame_url %}docsContentFrame{% endif %}"
+                        >
                             {{ key.replace('_', ' ').title() }}
                         </a>
                     {% else %}
@@ -1311,7 +1401,7 @@ __CW_SHARED_UI_TOKENS__
                             {{ key.replace('_', ' ').title() }}
                         </div>
                     {% endif %}
-                    
+
                     {% if data.children %}
                         {% for child_key, child_data in data.children.items() %}
                             {{ render_nav_item(child_key, child_data, depth + 1) }}
@@ -1319,7 +1409,7 @@ __CW_SHARED_UI_TOKENS__
                     {% endif %}
                 </div>
             {% endmacro %}
-            
+
             {% for section_key, section_data in navigation.items() %}
             <div class="nav-section">
                 {{ render_nav_item(section_key, section_data) }}
@@ -1328,7 +1418,13 @@ __CW_SHARED_UI_TOKENS__
             {% elif fallback_navigation and fallback_navigation|length > 0 %}
             <div class="nav-section">
                 {% for nav_item in fallback_navigation %}
-                <a href="/static-docs/{{ job_id }}/{{ nav_item.path }}{{ query_suffix }}" class="nav-item {% if current_page == nav_item.path %}active{% endif %}">
+                <a
+                    href="{{ content_nav_base or (shell_nav_base or ('/static-docs/' ~ (job_id or ''))) }}/{{ nav_item.path }}{{ query_suffix or '' }}"
+                    class="nav-item nav-link {% if current_page == nav_item.path %}active{% endif %}"
+                    data-page="{{ nav_item.path }}"
+                    data-shell-href="{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}/{{ nav_item.path }}{{ query_suffix or '' }}"
+                    target="{% if content_frame_url %}docsContentFrame{% endif %}"
+                >
                     {{ nav_item.title }}
                 </a>
                 {% endfor %}
@@ -1339,13 +1435,18 @@ __CW_SHARED_UI_TOKENS__
             </div>
             {% endif %}
         </nav>
-        
+
         <main class="content">
-            <div class="markdown-content">
+            {% if content_frame_url %}
+            <iframe id="docsContentFrame" name="docsContentFrame" class="docs-content-frame" src="{{ content_frame_url }}"></iframe>
+            {% else %}
+            <div id="docsInlineContent" class="markdown-content">
                 {{ content | safe }}
             </div>
+            {% endif %}
         </main>
 
+        {% if chat_api_url %}
         <button
             id="chatDrawerToggle"
             class="chat-drawer-toggle"
@@ -1363,9 +1464,15 @@ __CW_SHARED_UI_TOKENS__
 
         <aside class="chat-panel" data-chat-api="{{ chat_api_url }}" data-chat-protocol="{{ chat_protocol }}">
             <div class="chat-header">
-                <div class="chat-title">CodeWikiAgent</div>
+                <div class="chat-header-top">
+                    <div class="chat-title">CodeWikiAgent</div>
+                    <div class="chat-session-controls">
+                        <select id="chatSessionSelect" class="chat-session-select"></select>
+                        <button id="chatNewSessionBtn" class="chat-new-session" type="button">新建会话</button>
+                    </div>
+                </div>
                 <div class="chat-subtitle">
-                    CopilotKit/A2UI 风格会话，默认连接当前文档对应代码仓库（只读）。
+                    仅可读取文档与代码目录，禁止修改代码。会话会保存在本地浏览器并自动恢复。
                 </div>
             </div>
             <div id="chatMessages" class="chat-messages"></div>
@@ -1376,32 +1483,32 @@ __CW_SHARED_UI_TOKENS__
                     placeholder="输入你想了解的实现细节、模块关系、调用链..."
                 ></textarea>
                 <div class="chat-actions">
-                    <div class="chat-hint">Agent 会自动检索文档与代码。代码目录为只读。</div>
+                    <div class="chat-hint">当前文档导航不会重置 Chat。按 Ctrl/Cmd + Enter 发送。</div>
                     <button id="chatSendBtn" class="chat-send" type="button">发送</button>
                 </div>
             </div>
         </aside>
+        {% endif %}
     </div>
-    
+
     <script>
-        // Initialize mermaid with configuration
         mermaid.initialize({
             startOnLoad: true,
-            theme: 'default',
+            theme: "default",
             themeVariables: {
-                primaryColor: '#e7edf4',
-                primaryTextColor: '#162233',
-                primaryBorderColor: '#d2d9e2',
-                lineColor: '#5e6c7f',
-                sectionBkgColor: '#eef2f7',
-                altSectionBkgColor: '#ffffff',
-                gridColor: '#d2d9e2',
-                secondaryColor: '#eef2f7',
-                tertiaryColor: '#ffffff'
+                primaryColor: "#e7edf4",
+                primaryTextColor: "#162233",
+                primaryBorderColor: "#d2d9e2",
+                lineColor: "#5e6c7f",
+                sectionBkgColor: "#eef2f7",
+                altSectionBkgColor: "#ffffff",
+                gridColor: "#d2d9e2",
+                secondaryColor: "#eef2f7",
+                tertiaryColor: "#ffffff"
             },
             flowchart: {
                 htmlLabels: true,
-                curve: 'basis'
+                curve: "basis"
             },
             sequence: {
                 diagramMarginX: 50,
@@ -1420,164 +1527,540 @@ __CW_SHARED_UI_TOKENS__
                 showSequenceNumbers: false
             }
         });
-        
-        // Re-render mermaid diagrams after page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const buildQuery = () => {
-                const params = new URLSearchParams(window.location.search);
-                const versionSelect = document.getElementById('versionSelect');
-                const languageSelect = document.getElementById('languageSelect');
-                if (versionSelect) {
-                    const version = versionSelect.value || '';
-                    if (version) params.set('version', version);
-                    else params.delete('version');
-                }
-                if (languageSelect) {
-                    const lang = languageSelect.value || '';
-                    if (lang) params.set('lang', lang);
-                    else params.delete('lang');
-                }
-                const query = params.toString();
-                return query ? ('?' + query) : '';
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const docsFrame = document.getElementById("docsContentFrame");
+            const frameMode = Boolean(docsFrame);
+            const shellNavBase = "{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}";
+            const contentNavBase = "{{ content_nav_base or (shell_nav_base or ('/static-docs/' ~ (job_id or ''))) }}";
+            let currentPagePath = {{ (current_page or "overview.md")|tojson }};
+            const navLinks = Array.from(document.querySelectorAll(".nav-link[data-page]"));
+
+            const encodePagePath = (path) => {
+                return String(path || "overview.md").split("/").map(function(segment) {
+                    return encodeURIComponent(segment);
+                }).join("/");
             };
 
-            const versionSelect = document.getElementById('versionSelect');
+            const decodePagePath = (path) => {
+                const normalized = String(path || "").replace(/^\\/+/, "");
+                if (!normalized) return "overview.md";
+                try {
+                    return normalized.split("/").map(function(segment) {
+                        return decodeURIComponent(segment);
+                    }).join("/");
+                } catch (e) {
+                    return normalized;
+                }
+            };
+
+            const setActiveNav = (page) => {
+                navLinks.forEach(function(link) {
+                    link.classList.toggle("active", (link.dataset.page || "") === page);
+                });
+            };
+
+            const buildQuery = () => {
+                const params = new URLSearchParams(window.location.search);
+                const versionSelect = document.getElementById("versionSelect");
+                const languageSelect = document.getElementById("languageSelect");
+                if (versionSelect) {
+                    const version = versionSelect.value || "";
+                    if (version) params.set("version", version);
+                    else params.delete("version");
+                }
+                if (languageSelect) {
+                    const lang = languageSelect.value || "";
+                    if (lang) params.set("lang", lang);
+                    else params.delete("lang");
+                }
+                const query = params.toString();
+                return query ? ("?" + query) : "";
+            };
+
+            const syncFrameByCurrentPage = (pushHistory) => {
+                const query = buildQuery();
+                const shellHref = shellNavBase + "/" + encodePagePath(currentPagePath) + query;
+                const contentHref = contentNavBase + "/" + encodePagePath(currentPagePath) + query;
+                if (frameMode && docsFrame) {
+                    docsFrame.src = contentHref;
+                    if (pushHistory) {
+                        window.history.pushState({ page: currentPagePath }, "", shellHref);
+                    }
+                } else {
+                    window.location.href = shellHref;
+                }
+                setActiveNav(currentPagePath);
+            };
+
+            const resolveCurrentPageFromLocation = () => {
+                const currentPath = window.location.pathname || "";
+                const shellPrefix = shellNavBase + "/";
+                if (currentPath === shellNavBase || currentPath === shellPrefix.slice(0, -1)) {
+                    return "overview.md";
+                }
+                if (currentPath.startsWith(shellPrefix)) {
+                    return decodePagePath(currentPath.slice(shellPrefix.length));
+                }
+                return currentPagePath || "overview.md";
+            };
+
+            navLinks.forEach(function(link) {
+                link.addEventListener("click", function(event) {
+                    if (!frameMode) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const page = link.dataset.page || "overview.md";
+                    const shellHref = shellNavBase + "/" + encodePagePath(page) + buildQuery();
+                    currentPagePath = page;
+                    setActiveNav(page);
+                    if (docsFrame) {
+                        docsFrame.src = link.href;
+                    }
+                    window.history.pushState({ page: page }, "", shellHref);
+                });
+            });
+
+            window.addEventListener("popstate", function() {
+                if (!frameMode || !docsFrame) return;
+                currentPagePath = resolveCurrentPageFromLocation();
+                setActiveNav(currentPagePath);
+                docsFrame.src = contentNavBase + "/" + encodePagePath(currentPagePath) + (window.location.search || "");
+            });
+
+            const versionSelect = document.getElementById("versionSelect");
             if (versionSelect) {
-                versionSelect.addEventListener('change', function() {
-                    window.location.href = '/static-docs/{{ job_id }}/{{ current_page }}' + buildQuery();
+                versionSelect.addEventListener("change", function() {
+                    syncFrameByCurrentPage(true);
                 });
             }
 
-            const languageSelect = document.getElementById('languageSelect');
+            const languageSelect = document.getElementById("languageSelect");
             if (languageSelect) {
-                languageSelect.addEventListener('change', function() {
-                    window.location.href = '/static-docs/{{ job_id }}/{{ current_page }}' + buildQuery();
-                });
-            }
-            const viewSelect = document.getElementById('viewSelect');
-            if (viewSelect) {
-                viewSelect.addEventListener('change', function() {
-                    const targetJobId = viewSelect.value || '{{ job_id }}';
-                    const params = new URLSearchParams(window.location.search);
-                    params.delete('version');
-                    const query = params.toString();
-                    window.location.href = '/static-docs/' + targetJobId + '/overview.md' + (query ? ('?' + query) : '');
+                languageSelect.addEventListener("change", function() {
+                    syncFrameByCurrentPage(true);
                 });
             }
 
-            const chatPanel = document.querySelector('.chat-panel');
-            const chatDrawerToggle = document.getElementById('chatDrawerToggle');
-            const chatMessagesEl = document.getElementById('chatMessages');
-            const chatInputEl = document.getElementById('chatInput');
-            const chatSendBtn = document.getElementById('chatSendBtn');
-            const chatHistory = [];
-            const chatSessionKey = 'cw_chat_session_{{ job_id }}';
-            const chatDrawerKey = 'cw_chat_drawer_{{ job_id }}';
-            let chatSessionId = window.sessionStorage.getItem(chatSessionKey) || '';
+            const viewSelect = document.getElementById("viewSelect");
+            if (viewSelect) {
+                viewSelect.addEventListener("change", function() {
+                    const targetJobId = viewSelect.value || "{{ job_id or '' }}";
+                    const params = new URLSearchParams(window.location.search);
+                    params.delete("version");
+                    const query = params.toString();
+                    window.location.href = "/static-docs/" + targetJobId + "/overview.md" + (query ? ("?" + query) : "");
+                });
+            }
+
+            setActiveNav(currentPagePath);
+
+            if (!frameMode) {
+                mermaid.init(undefined, document.querySelectorAll(".mermaid"));
+            }
+
+            const chatPanel = document.querySelector(".chat-panel");
+            const chatDrawerToggle = document.getElementById("chatDrawerToggle");
+            const chatMessagesEl = document.getElementById("chatMessages");
+            const chatInputEl = document.getElementById("chatInput");
+            const chatSendBtn = document.getElementById("chatSendBtn");
+            const chatSessionSelectEl = document.getElementById("chatSessionSelect");
+            const chatNewSessionBtn = document.getElementById("chatNewSessionBtn");
+            const chatDrawerKey = "cw_chat_drawer_{{ job_id or 'default' }}";
+            const chatStoreKey = "cw_chat_store_{{ job_id or 'default' }}";
+
+            if (!chatPanel || !chatMessagesEl || !chatInputEl || !chatSendBtn || !chatSessionSelectEl || !chatNewSessionBtn) {
+                return;
+            }
+
+            const greetingText = "你好，我是 CodeWikiAgent。你可以问我当前模块实现、调用链、关键函数逻辑。";
+            const apiUrl = chatPanel.getAttribute("data-chat-api") || "";
+            const protocol = chatPanel.getAttribute("data-chat-protocol") || "a2ui-0.1";
+            let chatStore = { activeSessionId: "", sessions: [] };
 
             const setDrawerState = (isOpen) => {
-                document.body.classList.toggle('chat-open', Boolean(isOpen));
+                document.body.classList.toggle("chat-open", Boolean(isOpen));
                 if (chatDrawerToggle) {
-                    chatDrawerToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-                    chatDrawerToggle.setAttribute('title', isOpen ? '收起聊天助手' : '打开聊天助手');
-                    chatDrawerToggle.setAttribute('aria-label', isOpen ? '收起聊天助手' : '打开聊天助手');
+                    chatDrawerToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+                    chatDrawerToggle.setAttribute("title", isOpen ? "收起聊天助手" : "打开聊天助手");
+                    chatDrawerToggle.setAttribute("aria-label", isOpen ? "收起聊天助手" : "打开聊天助手");
                 }
                 try {
-                    window.localStorage.setItem(chatDrawerKey, isOpen ? '1' : '0');
+                    window.localStorage.setItem(chatDrawerKey, isOpen ? "1" : "0");
                 } catch (e) {
                     // ignore storage errors
                 }
             };
 
             if (chatDrawerToggle) {
-                chatDrawerToggle.addEventListener('click', function() {
-                    const open = document.body.classList.contains('chat-open');
-                    setDrawerState(!open);
+                chatDrawerToggle.addEventListener("click", function() {
+                    const isOpen = document.body.classList.contains("chat-open");
+                    setDrawerState(!isOpen);
                 });
             }
-
             try {
-                const storedDrawerState = window.localStorage.getItem(chatDrawerKey);
-                setDrawerState(storedDrawerState === '1');
+                setDrawerState(window.localStorage.getItem(chatDrawerKey) === "1");
             } catch (e) {
                 setDrawerState(false);
             }
 
-            const appendBubble = (role, text) => {
-                if (!chatMessagesEl) return;
-                const bubble = document.createElement('div');
-                bubble.className = 'chat-bubble ' + role;
-                bubble.textContent = text || '';
-                chatMessagesEl.appendChild(bubble);
+            const nowText = () => {
+                const d = new Date();
+                const pad = (n) => String(n).padStart(2, "0");
+                return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+            };
+
+            const truncateText = (text, maxLen) => {
+                const normalized = String(text || "").replace(/\\s+/g, " ").trim();
+                if (!normalized) return "";
+                if (normalized.length <= maxLen) return normalized;
+                return normalized.slice(0, maxLen);
+            };
+
+            const buildSessionTitle = (createdAt, firstQuestion) => {
+                const stem = truncateText(firstQuestion || "新会话", 30) || "新会话";
+                return createdAt + "-" + stem;
+            };
+
+            const persistChatStore = () => {
+                try {
+                    window.localStorage.setItem(chatStoreKey, JSON.stringify(chatStore));
+                } catch (e) {
+                    // ignore storage errors
+                }
+            };
+
+            const createSession = () => {
+                const createdAt = nowText();
+                const id = "local-" + Date.now() + "-" + Math.random().toString(16).slice(2, 10);
+                return {
+                    id: id,
+                    serverSessionId: "",
+                    createdAt: createdAt,
+                    updatedAt: createdAt,
+                    title: buildSessionTitle(createdAt, ""),
+                    firstQuestion: "",
+                    messages: [{ role: "assistant", content: greetingText }]
+                };
+            };
+
+            const ensureValidStore = () => {
+                if (!chatStore || !Array.isArray(chatStore.sessions)) {
+                    chatStore = { activeSessionId: "", sessions: [] };
+                }
+                if (!chatStore.sessions.length) {
+                    const initial = createSession();
+                    chatStore.sessions = [initial];
+                    chatStore.activeSessionId = initial.id;
+                }
+                if (!chatStore.activeSessionId || !chatStore.sessions.find(function(item) { return item.id === chatStore.activeSessionId; })) {
+                    chatStore.activeSessionId = chatStore.sessions[0].id;
+                }
+            };
+
+            const loadChatStore = () => {
+                try {
+                    const raw = window.localStorage.getItem(chatStoreKey);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && Array.isArray(parsed.sessions)) {
+                            chatStore = parsed;
+                        }
+                    }
+                } catch (e) {
+                    chatStore = { activeSessionId: "", sessions: [] };
+                }
+                ensureValidStore();
+                persistChatStore();
+            };
+
+            const getActiveSession = () => {
+                return chatStore.sessions.find(function(item) { return item.id === chatStore.activeSessionId; }) || null;
+            };
+
+            const renderSessionOptions = () => {
+                chatSessionSelectEl.innerHTML = "";
+                chatStore.sessions.forEach(function(session) {
+                    const option = document.createElement("option");
+                    option.value = session.id;
+                    option.textContent = session.title || buildSessionTitle(session.createdAt || nowText(), session.firstQuestion || "");
+                    chatSessionSelectEl.appendChild(option);
+                });
+                chatSessionSelectEl.value = chatStore.activeSessionId;
+            };
+
+            const renderActiveMessages = () => {
+                const session = getActiveSession();
+                chatMessagesEl.innerHTML = "";
+                if (!session || !Array.isArray(session.messages)) return;
+                session.messages.forEach(function(msg) {
+                    const bubble = document.createElement("div");
+                    bubble.className = "chat-bubble " + (msg.role === "user" ? "user" : "assistant");
+                    bubble.textContent = String(msg.content || "");
+                    chatMessagesEl.appendChild(bubble);
+                });
                 chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
             };
 
-            if (chatMessagesEl) {
-                appendBubble(
-                    'assistant',
-                    '你好，我是 CodeWikiAgent。你可以问我当前模块实现、调用链、关键函数逻辑。'
-                );
-            }
+            const activateSession = (sessionId) => {
+                const target = chatStore.sessions.find(function(item) { return item.id === sessionId; });
+                if (!target) return;
+                chatStore.activeSessionId = target.id;
+                renderSessionOptions();
+                renderActiveMessages();
+                persistChatStore();
+            };
+
+            const appendMessage = (role, text) => {
+                const session = getActiveSession();
+                if (!session) return;
+                if (!Array.isArray(session.messages)) {
+                    session.messages = [];
+                }
+                session.messages.push({ role: role, content: text || "" });
+                session.updatedAt = nowText();
+                if (role === "user" && !session.firstQuestion) {
+                    session.firstQuestion = truncateText(text || "", 30);
+                    session.title = buildSessionTitle(session.createdAt || nowText(), session.firstQuestion);
+                    renderSessionOptions();
+                }
+                renderActiveMessages();
+                persistChatStore();
+            };
+
+            loadChatStore();
+            renderSessionOptions();
+            renderActiveMessages();
+
+            chatSessionSelectEl.addEventListener("change", function() {
+                activateSession(chatSessionSelectEl.value || "");
+            });
+
+            chatNewSessionBtn.addEventListener("click", function() {
+                const session = createSession();
+                chatStore.sessions.unshift(session);
+                chatStore.activeSessionId = session.id;
+                renderSessionOptions();
+                renderActiveMessages();
+                persistChatStore();
+            });
 
             const sendChat = async () => {
-                const apiUrl = chatPanel ? chatPanel.getAttribute('data-chat-api') : '';
-                if (!apiUrl || !chatInputEl || !chatSendBtn) return;
+                if (!apiUrl) return;
+                const session = getActiveSession();
+                if (!session) return;
 
-                const question = (chatInputEl.value || '').trim();
+                const question = (chatInputEl.value || "").trim();
                 if (!question) return;
 
-                appendBubble('user', question);
-                chatHistory.push({ role: 'user', content: question });
-                chatInputEl.value = '';
+                appendMessage("user", question);
+                chatInputEl.value = "";
                 chatSendBtn.disabled = true;
 
                 const payload = {
-                    protocol: (chatPanel && chatPanel.getAttribute('data-chat-protocol')) || 'a2ui-0.1',
-                    session_id: chatSessionId || '',
+                    protocol: protocol,
+                    session_id: session.serverSessionId || session.id,
                     message: question,
-                    messages: chatHistory.slice(-12),
-                    current_page: '{{ current_page }}',
-                    version: '{{ current_version }}',
-                    lang: '{{ current_lang }}'
+                    messages: (session.messages || []).slice(-12),
+                    current_page: currentPagePath || "overview.md",
+                    version: "{{ current_version or '' }}",
+                    lang: "{{ current_lang or '' }}"
                 };
 
                 try {
                     const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
                     });
                     if (!response.ok) {
                         const text = await response.text();
-                        throw new Error('HTTP ' + response.status + ': ' + text);
+                        throw new Error("HTTP " + response.status + ": " + text);
                     }
                     const data = await response.json();
-                    const answer = (data && (data.output || (data.messages && data.messages[0] && data.messages[0].content))) || '';
+                    const answer = (data && (data.output || (data.messages && data.messages[0] && data.messages[0].content))) || "No response";
                     if (data && data.session_id) {
-                        chatSessionId = data.session_id;
-                        window.sessionStorage.setItem(chatSessionKey, chatSessionId);
+                        session.serverSessionId = data.session_id;
                     }
-                    chatHistory.push({ role: 'assistant', content: answer || 'No response' });
-                    appendBubble('assistant', answer || 'No response');
+                    appendMessage("assistant", answer);
+                    persistChatStore();
                 } catch (error) {
-                    appendBubble('assistant', '请求失败: ' + (error && error.message ? error.message : String(error)));
+                    appendMessage("assistant", "请求失败: " + (error && error.message ? error.message : String(error)));
                 } finally {
                     chatSendBtn.disabled = false;
                 }
             };
 
-            if (chatSendBtn) {
-                chatSendBtn.addEventListener('click', sendChat);
+            chatSendBtn.addEventListener("click", sendChat);
+            chatInputEl.addEventListener("keydown", function(event) {
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                    event.preventDefault();
+                    sendChat();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+""")
+
+DOCS_CONTENT_TEMPLATE = _inject_shared_tokens("""
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11.9.0/dist/mermaid.min.js"></script>
+    <style>
+__CW_SHARED_UI_TOKENS__
+        body {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background: var(--surface);
+            line-height: 1.55;
+            padding: 24px 30px;
+        }
+
+        .markdown-content {
+            max-width: 1200px;
+        }
+
+        .markdown-content h1 {
+            font-size: 2.28rem;
+            margin-bottom: 0.9rem;
+            padding-bottom: 0.45rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .markdown-content h2 {
+            font-size: 1.84rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+            color: var(--text);
+        }
+
+        .markdown-content h3 {
+            font-size: 1.34rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .markdown-content p,
+        .markdown-content li {
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            padding-left: 1.35rem;
+            margin-bottom: 1rem;
+        }
+
+        .markdown-content code {
+            background: var(--surface-soft);
+            border: 1px solid var(--line);
+            padding: 0.14rem 0.38rem;
+            border-radius: var(--radius-sm);
+            font-family: "Courier New", Consolas, monospace;
+            font-size: 0.86em;
+        }
+
+        .markdown-content pre {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 12px;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            border-radius: var(--radius-sm);
+        }
+
+        .markdown-content pre code {
+            border: none;
+            background: transparent;
+            padding: 0;
+        }
+
+        .markdown-content blockquote {
+            margin: 1rem 0;
+            padding: 0.7rem 0.95rem;
+            border-left: 3px solid var(--line-strong);
+            background: var(--surface-soft);
+            color: var(--muted);
+        }
+
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 0.88rem;
+            table-layout: auto;
+        }
+
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid var(--line);
+            padding: 0.58rem 0.68rem;
+            text-align: left;
+            vertical-align: top;
+            word-break: break-word;
+        }
+
+        .markdown-content th {
+            background: var(--surface-soft);
+            font-weight: 700;
+        }
+
+        .markdown-content a {
+            color: var(--primary);
+            text-decoration: underline;
+            text-decoration-color: #9cb4ce;
+        }
+
+        .mermaid {
+            margin: 1rem 0;
+            padding: 10px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            overflow-x: auto;
+        }
+
+        @media (max-width: 980px) {
+            body {
+                padding: 16px;
             }
-            if (chatInputEl) {
-                chatInputEl.addEventListener('keydown', function(event) {
-                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-                        event.preventDefault();
-                        sendChat();
-                    }
-                });
+        }
+    </style>
+</head>
+<body>
+    <main class="markdown-content">
+        {{ content | safe }}
+    </main>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: "default",
+            themeVariables: {
+                primaryColor: "#e7edf4",
+                primaryTextColor: "#162233",
+                primaryBorderColor: "#d2d9e2",
+                lineColor: "#5e6c7f",
+                sectionBkgColor: "#eef2f7",
+                altSectionBkgColor: "#ffffff",
+                gridColor: "#d2d9e2",
+                secondaryColor: "#eef2f7",
+                tertiaryColor: "#ffffff"
+            },
+            flowchart: {
+                htmlLabels: true,
+                curve: "basis"
             }
-            mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+        });
+        document.addEventListener("DOMContentLoaded", function() {
+            mermaid.init(undefined, document.querySelectorAll(".mermaid"));
         });
     </script>
 </body>

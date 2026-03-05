@@ -207,6 +207,7 @@ class WebRoutes:
         filename: str = "overview.md",
         version: str = "",
         lang: str = "",
+        content_only: bool = False,
     ) -> HTMLResponse:
         """Serve generated documentation files."""
         job = self.background_worker.get_job_status(job_id)
@@ -335,10 +336,17 @@ class WebRoutes:
             
             # Convert markdown to HTML (reuse from visualise_docs.py)
             from .visualise_docs import markdown_to_html, get_file_title
-            from .templates import DOCS_VIEW_TEMPLATE
+            from .templates import DOCS_VIEW_TEMPLATE, DOCS_CONTENT_TEMPLATE
             
             html_content = markdown_to_html(content)
             title = get_file_title(file_path)
+
+            if content_only:
+                content_context = {
+                    "title": title,
+                    "content": html_content,
+                }
+                return HTMLResponse(content=render_template(DOCS_CONTENT_TEMPLATE, content_context))
             
             navigation_fallback = self._build_fallback_navigation(docs_path)
             query_params = {}
@@ -349,6 +357,7 @@ class WebRoutes:
             query_suffix = f"?{urlencode(query_params)}" if query_params else ""
             view_options = self._collect_doc_type_views(job, job_id)
             current_doc_type = self._extract_doc_type(job, job_id)
+            content_frame_url = f"/static-docs-content/{job_id}/{filename}{query_suffix}"
 
             context = {
                 "repo_name": repo_url.split("/")[-1],
@@ -370,6 +379,9 @@ class WebRoutes:
                 "current_doc_type": current_doc_type,
                 "chat_api_url": f"/api/docs/{job_id}/chat",
                 "chat_protocol": "a2ui-0.1",
+                "content_frame_url": content_frame_url,
+                "content_nav_base": f"/static-docs-content/{job_id}",
+                "shell_nav_base": f"/static-docs/{job_id}",
             }
             
             return HTMLResponse(content=render_template(DOCS_VIEW_TEMPLATE, context))
