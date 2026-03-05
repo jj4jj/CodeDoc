@@ -30,6 +30,7 @@ SUPPORTED_EXTENSIONS = {
     '.php',     # PHP
     '.phtml',   # PHP templates
     '.inc',     # PHP includes
+    '.proto',   # Protocol Buffers
 }
 
 
@@ -60,7 +61,7 @@ def validate_repository(repo_path: Path) -> Tuple[Path, List[Tuple[str, int]]]:
     if not languages:
         raise RepositoryError(
             f"No supported code files found in {repo_path}\n\n"
-            "CodeWiki supports: Python, Java, JavaScript, TypeScript, C, C++, C#, PHP\n\n"
+            "CodeWiki supports: Python, Java, JavaScript, TypeScript, C, C++, C#, PHP, Protobuf\n\n"
             "Please navigate to a code repository or specify a custom directory:\n"
             "  cd /path/to/your/project\n"
             "  codewiki generate"
@@ -184,4 +185,3 @@ def count_code_files(repo_path: Path) -> int:
     for ext in SUPPORTED_EXTENSIONS:
         count += len(list(repo_path.rglob(f"*{ext}")))
     return count
-

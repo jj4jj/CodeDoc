@@ -136,6 +136,8 @@ class CallGraphAnalyzer:
                 self._analyze_php_file(file_path, content, repo_dir)
             elif language == "go":
                 self._analyze_go_file(file_path, content, repo_dir)
+            elif language == "protobuf":
+                self._analyze_protobuf_file(file_path, content, repo_dir)
             # else:
             #     logger.warning(
             #         f"Unsupported language for call graph analysis: {language} for file {file_path}"
@@ -348,6 +350,35 @@ class CallGraphAnalyzer:
         except Exception as e:
             logger.error(f"Failed to analyze Go file {file_path}: {e}", exc_info=True)
 
+    def _analyze_protobuf_file(self, file_path: str, content: str, repo_dir: str):
+        """
+        Analyze protobuf file using protobuf analyzer.
+
+        Args:
+            file_path: Relative path to the .proto file
+            content: File content string
+            repo_dir: Repository base directory
+        """
+        from codewiki.src.be.dependency_analyzer.analyzers.protobuf import (
+            analyze_protobuf_file,
+        )
+
+        try:
+            functions, relationships = analyze_protobuf_file(
+                file_path, content, repo_path=repo_dir
+            )
+
+            for func in functions:
+                func_id = func.id if func.id else f"{file_path}:{func.name}"
+                self.functions[func_id] = func
+
+            self.call_relationships.extend(relationships)
+        except Exception as e:
+            logger.error(
+                f"Failed to analyze protobuf file {file_path}: {e}",
+                exc_info=True,
+            )
+
     def _resolve_call_relationships(self):
         """
         Resolve function call relationships across all languages.
@@ -365,6 +396,28 @@ class CallGraphAnalyzer:
                 if method_name not in func_lookup:
                     func_lookup[method_name] = func_id
 
+            # Protobuf-specific aliases:
+            # map path-derived package keys (e.g., common.v1.User) to node ids
+            # when component ids are like common.v1.types.User.
+            rel_path = (func_info.relative_path or "").replace("\\", "/")
+            if rel_path.endswith(".proto") and "." in func_id:
+                module_path = rel_path[:-6].replace("/", ".")
+                if module_path and func_id.startswith(f"{module_path}."):
+                    symbol_suffix = func_id[len(module_path) + 1 :]
+                    if symbol_suffix:
+                        # In-file fully-qualified symbol (without file-module prefix)
+                        func_lookup.setdefault(symbol_suffix, func_id)
+                        # Path-derived package alias (drop proto filename segment)
+                        if "." in module_path:
+                            package_guess = module_path.rsplit(".", 1)[0]
+                            func_lookup.setdefault(f"{package_guess}.{symbol_suffix}", func_id)
+
+                display_name = (func_info.display_name or "").strip()
+                if " " in display_name:
+                    maybe_full_name = display_name.split(" ", 1)[1].strip()
+                    if maybe_full_name:
+                        func_lookup.setdefault(maybe_full_name, func_id)
+
         resolved_count = 0
         for relationship in self.call_relationships:
             callee_name = relationship.callee
@@ -379,6 +432,20 @@ class CallGraphAnalyzer:
                     relationship.is_resolved = True
                     resolved_count += 1
                 else:
+                    # Try progressively trimming namespace/package prefixes.
+                    parts = callee_name.split(".")
+                    matched = None
+                    for idx in range(1, len(parts) - 1):
+                        candidate = ".".join(parts[idx:])
+                        if candidate in func_lookup:
+                            matched = candidate
+                            break
+                    if matched:
+                        relationship.callee = func_lookup[matched]
+                        relationship.is_resolved = True
+                        resolved_count += 1
+                        continue
+
                     method_name = callee_name.split(".")[-1]
                     if method_name in func_lookup:
                         relationship.callee = func_lookup[method_name]
@@ -558,4 +625,3 @@ class CallGraphAnalyzer:
             for rel in self.call_relationships
             if rel.caller in selected_func_ids and rel.callee in selected_func_ids
         ]
-

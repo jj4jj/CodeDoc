@@ -172,6 +172,7 @@ def detect_supported_languages(directory: Path) -> List[Tuple[str, int]]:
         'C++': ['.cpp', '.hpp', '.cc', '.hh', '.cxx', '.hxx'],
         'C#': ['.cs'],
         'PHP': ['.php', '.phtml', '.inc'],
+        'Protobuf': ['.proto'],
     }
     
     # Directories to exclude from counting
@@ -247,4 +248,3 @@ def mask_api_key(api_key: str, visible_chars: int = 4) -> str:
         return f"{api_key[:2]}...{api_key[-2:]}"
     
     return f"{api_key[:visible_chars]}...{api_key[-visible_chars:]}"
-

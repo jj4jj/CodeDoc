@@ -297,7 +297,7 @@ class AnalysisService:
         """
         Filter code files to only include supported languages.
 
-        Supports Python, JavaScript, TypeScript, Java, C#, C, C++, PHP, Go, and Rust.
+        Supports Python, JavaScript, TypeScript, Java, C#, C, C++, PHP, Go, Rust, and Protobuf.
         """
         supported_languages = {
             "python",
@@ -310,6 +310,7 @@ class AnalysisService:
             "php",
             "go",
             "rust",
+            "protobuf",
         }
 
         return [
@@ -320,7 +321,18 @@ class AnalysisService:
 
     def _get_supported_languages(self) -> List[str]:
         """Get list of currently supported languages for analysis."""
-        return ["python", "javascript", "typescript", "java", "csharp", "c", "cpp", "php", "go"]
+        return [
+            "python",
+            "javascript",
+            "typescript",
+            "java",
+            "csharp",
+            "c",
+            "cpp",
+            "php",
+            "go",
+            "protobuf",
+        ]
 
     def _cleanup_repository(self, temp_dir: str):
         """Clean up cloned repository."""
