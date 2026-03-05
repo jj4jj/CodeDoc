@@ -471,6 +471,44 @@ DOCS_VIEW_TEMPLATE = """
             color: var(--primary-color);
             background: #f8fafc;
         }
+
+        .sidebar-control {
+            margin: 12px 0 16px 0;
+        }
+
+        .sidebar-control-label {
+            display: block;
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .sidebar-control-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #c9d5e3;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fff;
+            color: #334155;
+        }
+
+        .sidebar-control-readonly {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #c9d5e3;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fff;
+            color: #334155;
+            line-height: 1.2;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+        }
         
         .nav-section {
             margin-bottom: 25px;
@@ -685,9 +723,9 @@ DOCS_VIEW_TEMPLATE = """
             {% endif %}
 
             {% if versions and versions|length > 1 %}
-            <div style="margin: 12px 0 20px 0;">
-                <label for="versionSelect" style="display:block; font-size:12px; color:#64748b; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Version</label>
-                <select id="versionSelect" style="width:100%; padding:8px 10px; border:1px solid #c9d5e3; border-radius:6px; font-size:13px; background:#fff;">
+            <div class="sidebar-control">
+                <label for="versionSelect" class="sidebar-control-label">Version</label>
+                <select id="versionSelect" class="sidebar-control-input">
                     {% for v in versions %}
                     <option value="{{ v.id }}" {% if current_version == v.id %}selected{% endif %}>{{ v.label }}</option>
                     {% endfor %}
@@ -696,9 +734,9 @@ DOCS_VIEW_TEMPLATE = """
             {% endif %}
 
             {% if languages and languages|length > 1 %}
-            <div style="margin: 12px 0 20px 0;">
-                <label for="languageSelect" style="display:block; font-size:12px; color:#64748b; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">语言</label>
-                <select id="languageSelect" style="width:100%; padding:8px 10px; border:1px solid #c9d5e3; border-radius:6px; font-size:13px; background:#fff;">
+            <div class="sidebar-control">
+                <label for="languageSelect" class="sidebar-control-label">语言</label>
+                <select id="languageSelect" class="sidebar-control-input">
                     {% for lang_item in languages %}
                     <option value="{{ lang_item.id }}" {% if current_lang == lang_item.id %}selected{% endif %}>{{ lang_item.label }}</option>
                     {% endfor %}
@@ -707,17 +745,18 @@ DOCS_VIEW_TEMPLATE = """
             {% endif %}
 
             {% if view_options and view_options|length > 1 %}
-            <div style="margin: 12px 0 20px 0;">
-                <label for="viewSelect" style="display:block; font-size:12px; color:#64748b; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">视图</label>
-                <select id="viewSelect" style="width:100%; padding:8px 10px; border:1px solid #c9d5e3; border-radius:6px; font-size:13px; background:#fff;">
+            <div class="sidebar-control">
+                <label for="viewSelect" class="sidebar-control-label">视图</label>
+                <select id="viewSelect" class="sidebar-control-input">
                     {% for v in view_options %}
                     <option value="{{ v.job_id }}" {% if current_view_job_id == v.job_id %}selected{% endif %}>{{ v.label }}</option>
                     {% endfor %}
                 </select>
             </div>
             {% elif current_doc_type %}
-            <div style="margin: 12px 0 20px 0; font-size:12px; color:#64748b;">
-                视图: <strong style="color:#334155;">{{ current_doc_type }}</strong>
+            <div class="sidebar-control">
+                <label class="sidebar-control-label">视图</label>
+                <div class="sidebar-control-readonly">{{ current_doc_type }}</div>
             </div>
             {% endif %}
             
