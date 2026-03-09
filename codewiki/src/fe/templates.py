@@ -3780,6 +3780,17 @@ __CW_SHARED_UI_LAYOUT__
             white-space: nowrap;
         }
 
+        .output-generate-btn {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+        }
+
+        .output-generate-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
         .table-wrap {
             overflow: auto;
             border: 1px solid var(--line);
@@ -4245,7 +4256,12 @@ __CW_SHARED_UI_LAYOUT__
                                 <label for="output">输出目录</label>
                                 <div class="input-with-action">
                                     <input type="text" id="output" name="output" placeholder="docs/codewiki">
-                                    <button class="btn" type="button" id="generateOutputPathBtn">生成</button>
+                                    <button class="btn icon-btn output-generate-btn" type="button" id="generateOutputPathBtn" title="生成输出目录" aria-label="生成输出目录">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M20 12a8 8 0 1 1-2.3-5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                            <path d="M20 4v5.4h-5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                             <div class="field">
@@ -4876,10 +4892,29 @@ __CW_SHARED_UI_LAYOUT__
 
             const jobId = _buildJobIdFromForm(form);
             if (!jobId) {
-                outputInput.value = "docs/codewiki";
+                outputInput.value = `output/docs/codewiki/${_buildVersionStamp()}`;
                 return;
             }
             outputInput.value = `output/docs/${jobId}/${_buildVersionStamp()}`;
+        }
+
+        function wireOutputPathAutoGeneration(form) {
+            if (!form) return;
+
+            const refresh = () => generateOutputPath(form);
+            const watchedFields = ["repo_url", "subproject_name", "subproject_path", "doc_type"];
+            watchedFields.forEach((name) => {
+                const el = form.querySelector(`[name="${name}"]`);
+                if (!el) return;
+                el.addEventListener("input", refresh);
+                el.addEventListener("change", refresh);
+            });
+
+            form.addEventListener("submit", () => {
+                generateOutputPath(form);
+            });
+
+            refresh();
         }
 
         function regenerateTask(jobId) {
@@ -4896,7 +4931,7 @@ __CW_SHARED_UI_LAYOUT__
             _setFormValue(form, "subproject_name", data.subprojectName || "");
             _setFormValue(form, "subproject_path", data.subprojectPath || "");
             _setFormValue(form, "priority", data.priority || "0");
-            _setFormValue(form, "output", data.output || "docs/codewiki");
+            _setFormValue(form, "output", "");
             _setFormValue(form, "include", data.include || "");
             _setFormValue(form, "exclude", data.exclude || "");
             _setFormValue(form, "focus", data.focus || "");
@@ -4931,6 +4966,7 @@ __CW_SHARED_UI_LAYOUT__
                 repoInput.scrollIntoView({ behavior: "smooth", block: "center" });
             }
 
+            generateOutputPath(form);
             saveAdvancedOptions();
         }
 
@@ -4978,8 +5014,11 @@ __CW_SHARED_UI_LAYOUT__
 
             const createTaskForm = document.querySelector('form[action="/admin"]');
             const generateOutputBtn = document.getElementById("generateOutputPathBtn");
-            if (createTaskForm && generateOutputBtn) {
-                generateOutputBtn.addEventListener("click", () => generateOutputPath(createTaskForm));
+            if (createTaskForm) {
+                wireOutputPathAutoGeneration(createTaskForm);
+                if (generateOutputBtn) {
+                    generateOutputBtn.addEventListener("click", () => generateOutputPath(createTaskForm));
+                }
             }
 
             const refreshBtn = document.getElementById("adminRefresh");
