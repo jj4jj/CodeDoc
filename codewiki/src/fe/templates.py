@@ -665,7 +665,6 @@ __CW_SHARED_UI_LAYOUT__
                 </svg>
                 <span>CodeWiki 文档中心</span>
             </a>
-            <div class="home-hint">这是首页（展示文档中心入口，点击卡片可在新窗口打开文档）</div>
             <div class="topbar-right">
                 <nav class="nav">
                     <a class="active" href="/" title="首页" aria-label="首页">
@@ -704,7 +703,6 @@ __CW_SHARED_UI_LAYOUT__
 
         <section class="portal-layout">
             <aside class="panel left-rail">
-                <div class="rail-title">榜单列表（热门 / 最新 / 收藏）</div>
                 <div class="rank-tabs">
                     <button type="button" class="rank-tab active" data-rank-mode="hot">热门</button>
                     <button type="button" class="rank-tab" data-rank-mode="latest">最新</button>
@@ -2875,7 +2873,6 @@ __CW_SHARED_UI_LAYOUT__
                 </svg>
                 <span>CodeWiki 文档中心</span>
             </a>
-            <div class="console-hint">这是控制台（创建任务、模板设置、Agent 设置与任务管理统一入口）</div>
             <div class="topbar-right">
                 <nav class="nav">
                     <a href="/" title="首页" aria-label="首页">
