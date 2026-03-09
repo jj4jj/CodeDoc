@@ -2528,12 +2528,31 @@ __CW_SHARED_UI_TOKENS__
             if (!container || !lightbox || container.dataset.lightboxBound === "1") return;
             container.dataset.lightboxBound = "1";
             container.title = "双击打开独立视图";
+            container.style.cursor = "zoom-in";
             container.addEventListener("dblclick", (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 const svg = container.querySelector("svg");
                 if (!svg) return;
                 lightbox.open(svg);
+            });
+        }
+
+        function bindMermaidLightboxFromDocument(doc, lightbox) {
+            if (!doc || !lightbox) return;
+            const nodes = Array.from(doc.querySelectorAll(".mermaid"));
+            nodes.forEach((node) => {
+                if (node.dataset.lightboxBoundParent === "1") return;
+                node.dataset.lightboxBoundParent = "1";
+                node.title = "双击打开独立视图";
+                node.style.cursor = "zoom-in";
+                node.addEventListener("dblclick", (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const svg = node.querySelector("svg");
+                    if (!svg) return;
+                    lightbox.open(svg);
+                });
             });
         }
 
@@ -2740,6 +2759,20 @@ __CW_SHARED_UI_TOKENS__
                 window.setTimeout(() => {
                     nodes.forEach((node) => bindMermaidLightbox(node, mermaidLightbox));
                 }, 0);
+            } else if (docsFrame) {
+                const bindFromFrame = () => {
+                    try {
+                        bindMermaidLightboxFromDocument(docsFrame.contentDocument, mermaidLightbox);
+                    } catch (e) {
+                        // ignore frame access issues
+                    }
+                };
+                docsFrame.addEventListener("load", () => {
+                    // Mermaid render may finish slightly after iframe load.
+                    window.setTimeout(bindFromFrame, 80);
+                    window.setTimeout(bindFromFrame, 260);
+                });
+                window.setTimeout(bindFromFrame, 180);
             }
 
             const chatPanel = document.querySelector(".chat-panel");
