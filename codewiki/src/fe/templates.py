@@ -1008,6 +1008,13 @@ __CW_SHARED_UI_LAYOUT__
             applyTheme(stored);
         }
 
+        const MERMAID_DEBUG =
+            (new URLSearchParams(window.location.search).get("debugMermaid") === "1")
+            || (window.localStorage.getItem("cw_debug_mermaid") === "1");
+        const mermaidLog = (...args) => {
+            if (MERMAID_DEBUG) console.log("[MermaidLB][shell]", ...args);
+        };
+
         function toggleTheme() {
             const current = normalizeTheme(document.documentElement.getAttribute("data-theme") || "light");
             const index = THEME_PRESETS.indexOf(current);
@@ -1907,7 +1914,7 @@ __CW_SHARED_UI_TOKENS__
             justify-content: center;
             background: rgba(14, 23, 35, 0.72);
             z-index: 2200;
-            padding: 20px;
+            padding: 0;
         }
 
         .mermaid-lightbox-overlay.show {
@@ -1915,13 +1922,13 @@ __CW_SHARED_UI_TOKENS__
         }
 
         .mermaid-lightbox-panel {
-            width: min(96vw, 1520px);
-            height: min(92vh, 980px);
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            border: 1px solid var(--line);
+            border: none;
             background: var(--surface);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.34);
+            box-shadow: none;
         }
 
         .mermaid-lightbox-toolbar {
@@ -1959,10 +1966,19 @@ __CW_SHARED_UI_TOKENS__
             border: 1px solid var(--line);
             background: var(--surface);
             color: var(--muted);
-            font-size: 0.76rem;
-            padding: 4px 9px;
+            width: 30px;
+            height: 30px;
+            padding: 0;
             border-radius: var(--radius-sm);
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mermaid-lightbox-btn svg {
+            width: 15px;
+            height: 15px;
         }
 
         .mermaid-lightbox-btn:hover {
@@ -1988,11 +2004,13 @@ __CW_SHARED_UI_TOKENS__
             left: 0;
             top: 0;
             transform-origin: 0 0;
-            will-change: transform;
+            will-change: auto;
         }
 
         .mermaid-lightbox-content svg {
             max-width: none;
+            shape-rendering: geometricPrecision;
+            text-rendering: geometricPrecision;
         }
 
         @media (max-width: 1580px) {
@@ -2349,6 +2367,13 @@ __CW_SHARED_UI_TOKENS__
             }
         });
 
+        const MERMAID_DEBUG =
+            (new URLSearchParams(window.location.search).get("debugMermaid") === "1")
+            || (window.localStorage.getItem("cw_debug_mermaid") === "1");
+        const mermaidLog = (...args) => {
+            if (MERMAID_DEBUG) console.log("[MermaidLB][content]", ...args);
+        };
+
         const THEME_KEY = "codewiki_theme";
         const THEME_PRESETS = ["light", "slate", "sage", "dark"];
 
@@ -2379,8 +2404,17 @@ __CW_SHARED_UI_TOKENS__
                         <strong>Mermaid 独立视图</strong>
                         <span class="mermaid-lightbox-hint">滚轮缩放 · 拖动平移 · 双击复位</span>
                         <div class="mermaid-lightbox-actions">
-                            <button type="button" class="mermaid-lightbox-btn" data-action="reset">复位</button>
-                            <button type="button" class="mermaid-lightbox-btn" data-action="close">关闭</button>
+                            <button type="button" class="mermaid-lightbox-btn" data-action="reset" title="复位" aria-label="复位">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M20 12a8 8 0 1 1-2.3-5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    <path d="M20 4v5.4h-5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="mermaid-lightbox-btn" data-action="close" title="关闭" aria-label="关闭">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     <div class="mermaid-lightbox-canvas">
@@ -2404,16 +2438,23 @@ __CW_SHARED_UI_TOKENS__
                 y: 0,
                 startX: 0,
                 startY: 0,
+                sourceWidth: 0,
+                sourceHeight: 0,
+                currentSvg: null,
             };
 
             const clampScale = (value) => Math.max(0.2, Math.min(8, value));
 
             const apply = () => {
-                content.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+                content.style.transform = `translate(${state.x}px, ${state.y}px)`;
+                if (state.currentSvg && state.sourceWidth > 0 && state.sourceHeight > 0) {
+                    state.currentSvg.style.width = `${Math.max(1, state.sourceWidth * state.scale)}px`;
+                    state.currentSvg.style.height = `${Math.max(1, state.sourceHeight * state.scale)}px`;
+                }
             };
 
             const fitToCanvas = () => {
-                const svg = content.querySelector("svg");
+                const svg = state.currentSvg || content.querySelector("svg");
                 if (!svg) return;
 
                 let sourceWidth = 0;
@@ -2436,6 +2477,9 @@ __CW_SHARED_UI_TOKENS__
                     sourceHeight = rect.height || 800;
                 }
 
+                state.sourceWidth = sourceWidth;
+                state.sourceHeight = sourceHeight;
+
                 const availW = Math.max(200, canvas.clientWidth - 48);
                 const availH = Math.max(200, canvas.clientHeight - 48);
                 state.scale = clampScale(Math.min(availW / sourceWidth, availH / sourceHeight, 1.2));
@@ -2450,19 +2494,30 @@ __CW_SHARED_UI_TOKENS__
                 overlay.classList.remove("show");
                 canvas.classList.remove("dragging");
                 content.innerHTML = "";
+                state.currentSvg = null;
+                state.sourceWidth = 0;
+                state.sourceHeight = 0;
+                mermaidLog("close");
             };
 
             const open = (sourceSvg) => {
                 if (!sourceSvg) return;
                 const clone = sourceSvg.cloneNode(true);
                 clone.removeAttribute("style");
+                clone.style.maxWidth = "none";
+                clone.style.width = "";
+                clone.style.height = "";
+                clone.style.shapeRendering = "geometricPrecision";
+                clone.style.textRendering = "geometricPrecision";
                 content.innerHTML = "";
                 content.appendChild(clone);
+                state.currentSvg = clone;
                 overlay.classList.add("show");
                 state.open = true;
                 state.dragging = false;
                 canvas.classList.remove("dragging");
                 window.requestAnimationFrame(fitToCanvas);
+                mermaidLog("open", { sourceId: sourceSvg.id || "", width: sourceSvg.getAttribute("width") || "" });
             };
 
             closeBtn.addEventListener("click", close);
@@ -2532,15 +2587,19 @@ __CW_SHARED_UI_TOKENS__
             container.addEventListener("dblclick", (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                const svg = container.querySelector("svg");
+                const svg = container.tagName && container.tagName.toLowerCase() === "svg"
+                    ? container
+                    : container.querySelector("svg");
+                mermaidLog("dblclick(shell)", { hasSvg: Boolean(svg) });
                 if (!svg) return;
                 lightbox.open(svg);
-            });
+            }, true);
         }
 
         function bindMermaidLightboxFromDocument(doc, lightbox) {
             if (!doc || !lightbox) return;
-            const nodes = Array.from(doc.querySelectorAll(".mermaid"));
+            const nodes = Array.from(doc.querySelectorAll(".mermaid, svg[id^='mermaid-']"));
+            mermaidLog("bindFromDocument", { nodeCount: nodes.length });
             nodes.forEach((node) => {
                 if (node.dataset.lightboxBoundParent === "1") return;
                 node.dataset.lightboxBoundParent = "1";
@@ -2549,10 +2608,13 @@ __CW_SHARED_UI_TOKENS__
                 node.addEventListener("dblclick", (event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    const svg = node.querySelector("svg");
+                    const svg = node.tagName && node.tagName.toLowerCase() === "svg"
+                        ? node
+                        : node.querySelector("svg");
+                    mermaidLog("dblclick(frame)", { hasSvg: Boolean(svg) });
                     if (!svg) return;
                     lightbox.open(svg);
-                });
+                }, true);
             });
         }
 
@@ -2570,6 +2632,7 @@ __CW_SHARED_UI_TOKENS__
 
             const docsFrame = document.getElementById("docsContentFrame");
             const frameMode = Boolean(docsFrame);
+            mermaidLog("init", { frameMode: frameMode });
             const shellNavBase = "{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}";
             const contentNavBase = "{{ content_nav_base or (shell_nav_base or ('/static-docs/' ~ (job_id or ''))) }}";
             let currentPagePath = {{ (current_page or "overview.md")|tojson }};
@@ -2754,16 +2817,21 @@ __CW_SHARED_UI_TOKENS__
             setActiveNav(currentPagePath);
 
             if (!frameMode) {
-                const nodes = Array.from(document.querySelectorAll(".mermaid"));
-                mermaid.init(undefined, nodes);
+                const mermaidNodes = Array.from(document.querySelectorAll(".mermaid"));
+                mermaidLog("bindInline", { mermaidCount: mermaidNodes.length });
+                mermaid.init(undefined, mermaidNodes);
                 window.setTimeout(() => {
-                    nodes.forEach((node) => bindMermaidLightbox(node, mermaidLightbox));
+                    const bindNodes = Array.from(document.querySelectorAll(".mermaid, svg[id^='mermaid-']"));
+                    mermaidLog("bindInline-afterRender", { nodeCount: bindNodes.length });
+                    bindNodes.forEach((node) => bindMermaidLightbox(node, mermaidLightbox));
                 }, 0);
             } else if (docsFrame) {
                 const bindFromFrame = () => {
                     try {
+                        mermaidLog("bindFromFrame-attempt");
                         bindMermaidLightboxFromDocument(docsFrame.contentDocument, mermaidLightbox);
                     } catch (e) {
+                        mermaidLog("bindFromFrame-error", String(e));
                         // ignore frame access issues
                     }
                 };
@@ -3255,7 +3323,7 @@ __CW_SHARED_UI_TOKENS__
             justify-content: center;
             background: rgba(14, 23, 35, 0.72);
             z-index: 2200;
-            padding: 20px;
+            padding: 0;
         }
 
         .mermaid-lightbox-overlay.show {
@@ -3263,13 +3331,13 @@ __CW_SHARED_UI_TOKENS__
         }
 
         .mermaid-lightbox-panel {
-            width: min(96vw, 1520px);
-            height: min(92vh, 980px);
+            width: 100vw;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            border: 1px solid var(--line);
+            border: none;
             background: var(--surface);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.34);
+            box-shadow: none;
         }
 
         .mermaid-lightbox-toolbar {
@@ -3307,10 +3375,19 @@ __CW_SHARED_UI_TOKENS__
             border: 1px solid var(--line);
             background: var(--surface);
             color: var(--muted);
-            font-size: 0.76rem;
-            padding: 4px 9px;
+            width: 30px;
+            height: 30px;
+            padding: 0;
             border-radius: var(--radius-sm);
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mermaid-lightbox-btn svg {
+            width: 15px;
+            height: 15px;
         }
 
         .mermaid-lightbox-btn:hover {
@@ -3336,11 +3413,13 @@ __CW_SHARED_UI_TOKENS__
             left: 0;
             top: 0;
             transform-origin: 0 0;
-            will-change: transform;
+            will-change: auto;
         }
 
         .mermaid-lightbox-content svg {
             max-width: none;
+            shape-rendering: geometricPrecision;
+            text-rendering: geometricPrecision;
         }
 
         @media (max-width: 980px) {
@@ -3375,6 +3454,13 @@ __CW_SHARED_UI_TOKENS__
             }
         });
 
+        const MERMAID_DEBUG =
+            (new URLSearchParams(window.location.search).get("debugMermaid") === "1")
+            || (window.localStorage.getItem("cw_debug_mermaid") === "1");
+        const mermaidLog = (...args) => {
+            if (MERMAID_DEBUG) console.log("[MermaidLB][content]", ...args);
+        };
+
         function createMermaidLightbox() {
             const overlay = document.createElement("div");
             overlay.className = "mermaid-lightbox-overlay";
@@ -3384,8 +3470,17 @@ __CW_SHARED_UI_TOKENS__
                         <strong>Mermaid 独立视图</strong>
                         <span class="mermaid-lightbox-hint">滚轮缩放 · 拖动平移 · 双击复位</span>
                         <div class="mermaid-lightbox-actions">
-                            <button type="button" class="mermaid-lightbox-btn" data-action="reset">复位</button>
-                            <button type="button" class="mermaid-lightbox-btn" data-action="close">关闭</button>
+                            <button type="button" class="mermaid-lightbox-btn" data-action="reset" title="复位" aria-label="复位">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M20 12a8 8 0 1 1-2.3-5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    <path d="M20 4v5.4h-5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="mermaid-lightbox-btn" data-action="close" title="关闭" aria-label="关闭">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     <div class="mermaid-lightbox-canvas">
@@ -3408,16 +3503,23 @@ __CW_SHARED_UI_TOKENS__
                 y: 0,
                 startX: 0,
                 startY: 0,
+                sourceWidth: 0,
+                sourceHeight: 0,
+                currentSvg: null,
             };
 
             const clampScale = (value) => Math.max(0.2, Math.min(8, value));
 
             const apply = () => {
-                content.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+                content.style.transform = `translate(${state.x}px, ${state.y}px)`;
+                if (state.currentSvg && state.sourceWidth > 0 && state.sourceHeight > 0) {
+                    state.currentSvg.style.width = `${Math.max(1, state.sourceWidth * state.scale)}px`;
+                    state.currentSvg.style.height = `${Math.max(1, state.sourceHeight * state.scale)}px`;
+                }
             };
 
             const fitToCanvas = () => {
-                const svg = content.querySelector("svg");
+                const svg = state.currentSvg || content.querySelector("svg");
                 if (!svg) return;
 
                 let sourceWidth = 0;
@@ -3440,6 +3542,9 @@ __CW_SHARED_UI_TOKENS__
                     sourceHeight = rect.height || 800;
                 }
 
+                state.sourceWidth = sourceWidth;
+                state.sourceHeight = sourceHeight;
+
                 const availW = Math.max(200, canvas.clientWidth - 48);
                 const availH = Math.max(200, canvas.clientHeight - 48);
                 state.scale = clampScale(Math.min(availW / sourceWidth, availH / sourceHeight, 1.2));
@@ -3454,19 +3559,30 @@ __CW_SHARED_UI_TOKENS__
                 overlay.classList.remove("show");
                 canvas.classList.remove("dragging");
                 content.innerHTML = "";
+                state.currentSvg = null;
+                state.sourceWidth = 0;
+                state.sourceHeight = 0;
+                mermaidLog("close");
             };
 
             const open = (sourceSvg) => {
                 if (!sourceSvg) return;
                 const clone = sourceSvg.cloneNode(true);
                 clone.removeAttribute("style");
+                clone.style.maxWidth = "none";
+                clone.style.width = "";
+                clone.style.height = "";
+                clone.style.shapeRendering = "geometricPrecision";
+                clone.style.textRendering = "geometricPrecision";
                 content.innerHTML = "";
                 content.appendChild(clone);
+                state.currentSvg = clone;
                 overlay.classList.add("show");
                 state.open = true;
                 state.dragging = false;
                 canvas.classList.remove("dragging");
                 window.requestAnimationFrame(fitToCanvas);
+                mermaidLog("open", { sourceId: sourceSvg.id || "" });
             };
 
             closeBtn.addEventListener("click", close);
@@ -3532,21 +3648,32 @@ __CW_SHARED_UI_TOKENS__
             if (!container || !lightbox || container.dataset.lightboxBound === "1") return;
             container.dataset.lightboxBound = "1";
             container.title = "双击打开独立视图";
+            container.style.cursor = "zoom-in";
             container.addEventListener("dblclick", (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                const svg = container.querySelector("svg");
+                const svg = container.tagName && container.tagName.toLowerCase() === "svg"
+                    ? container
+                    : container.querySelector("svg");
+                mermaidLog("dblclick(content)", { hasSvg: Boolean(svg) });
                 if (!svg) return;
                 lightbox.open(svg);
-            });
+            }, true);
         }
 
         document.addEventListener("DOMContentLoaded", function() {
+            const mermaidNodes = Array.from(document.querySelectorAll(".mermaid"));
+            mermaidLog("init", { mermaidCount: mermaidNodes.length });
+            mermaid.init(undefined, mermaidNodes);
+            if (window.self !== window.top) {
+                mermaidLog("skip-lightbox-in-iframe");
+                return;
+            }
             const lightbox = createMermaidLightbox();
-            const nodes = Array.from(document.querySelectorAll(".mermaid"));
-            mermaid.init(undefined, nodes);
             window.setTimeout(() => {
-                nodes.forEach((node) => bindMermaidLightbox(node, lightbox));
+                const bindNodes = Array.from(document.querySelectorAll(".mermaid, svg[id^='mermaid-']"));
+                mermaidLog("bind-afterRender", { nodeCount: bindNodes.length });
+                bindNodes.forEach((node) => bindMermaidLightbox(node, lightbox));
             }, 0);
         });
     </script>
