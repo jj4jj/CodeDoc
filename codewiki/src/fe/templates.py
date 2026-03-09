@@ -434,6 +434,19 @@ __CW_SHARED_UI_LAYOUT__
             white-space: nowrap;
         }
 
+        .rank-badges {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rank-type {
+            font-size: 0.92rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+        }
+
         .rank-sub {
             color: var(--muted);
             font-size: 0.76rem;
@@ -713,8 +726,11 @@ __CW_SHARED_UI_LAYOUT__
                     <div class="rank-item" data-job-id="{{ item.job_id }}">
                         <a href="/docs/{{ item.job_id }}" target="_blank" rel="noopener">
                             <div class="rank-head">
-                                <span class="rank-title">{{ item.title }}</span>
-                                <span class="rank-score">🔥 {{ item.score }}</span>
+                                <span class="rank-title">{{ item.display_title }}</span>
+                                <span class="rank-badges">
+                                    <span class="rank-type" title="文档类型: {{ item.doc_type }}">{{ item.doc_type_icon }}</span>
+                                    <span class="rank-score">🔥 {{ item.score }}</span>
+                                </span>
                             </div>
                             <div class="rank-sub">{{ item.repo_url }}</div>
                         </a>
@@ -771,10 +787,12 @@ __CW_SHARED_UI_LAYOUT__
                         class="doc-card"
                         data-job-id="{{ card.job_id }}"
                         data-title="{{ card.title }}"
-                        data-search="{{ card.title ~ ' ' ~ card.repo_url ~ ' ' ~ card.subproject ~ ' ' ~ card.doc_type }}"
+                        data-display-title="{{ card.display_title }}"
+                        data-search="{{ card.display_title ~ ' ' ~ card.title ~ ' ' ~ card.repo_url ~ ' ' ~ card.subproject ~ ' ' ~ card.doc_type }}"
                         data-status="{{ card.status }}"
                         data-created-at="{{ card.completed_at }}"
                         data-doc-type="{{ card.doc_type }}"
+                        data-doc-type-icon="{{ card.doc_type_icon }}"
                         data-likes="{{ card.likes }}"
                         data-favorites="{{ card.favorites }}"
                         data-views="{{ card.views }}"
@@ -910,15 +928,20 @@ __CW_SHARED_UI_LAYOUT__
             }
 
             rankList.innerHTML = top.map((card) => {
-                const title = card.dataset.title || card.dataset.jobId || "";
+                const title = card.dataset.displayTitle || card.dataset.title || card.dataset.jobId || "";
                 const repo = (card.querySelector(".card-sub") || {}).textContent || "";
                 const score = card.dataset.score || "0";
+                const docType = card.dataset.docType || "default";
+                const docTypeIcon = card.dataset.docTypeIcon || "📄";
                 return `
                     <div class="rank-item" data-job-id="${card.dataset.jobId}">
                         <a href="/docs/${card.dataset.jobId}" target="_blank" rel="noopener">
                             <div class="rank-head">
                                 <span class="rank-title">${escapeHtml(title)}</span>
-                                <span class="rank-score">🔥 ${score}</span>
+                                <span class="rank-badges">
+                                    <span class="rank-type" title="文档类型: ${escapeHtml(docType)}">${escapeHtml(docTypeIcon)}</span>
+                                    <span class="rank-score">🔥 ${score}</span>
+                                </span>
                             </div>
                             <div class="rank-sub">${escapeHtml(repo)}</div>
                         </a>
@@ -1426,14 +1449,14 @@ __CW_SHARED_UI_TOKENS__
             cursor: not-allowed;
         }
 
-        .logo {
+        .repo-title {
             display: block;
-            text-decoration: none;
             color: var(--primary);
-            font-size: 1.95rem;
+            font-size: 1.34rem;
             font-weight: 700;
             line-height: 1.2;
             margin-bottom: 10px;
+            word-break: break-word;
         }
 
         .home-link {
@@ -1658,6 +1681,33 @@ __CW_SHARED_UI_TOKENS__
             background: var(--surface);
             border: 1px solid var(--line);
             overflow-x: auto;
+            position: relative;
+            cursor: default;
+        }
+
+        .mermaid svg {
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        .mermaid.zoom-active {
+            cursor: grab;
+        }
+
+        .mermaid.zoom-active.dragging {
+            cursor: grabbing;
+        }
+
+        .mermaid-zoom-hint {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--muted);
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            pointer-events: none;
         }
 
         @media (max-width: 1580px) {
@@ -1737,13 +1787,7 @@ __CW_SHARED_UI_TOKENS__
 <body>
     <div class="docs-shell">
         <nav class="sidebar">
-            <a
-                href="{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}/overview.md{{ query_suffix or '' }}"
-                class="logo nav-link {% if current_page == 'overview.md' %}active{% endif %}"
-                data-page="overview.md"
-                data-shell-href="{{ shell_nav_base or ('/static-docs/' ~ (job_id or '')) }}/overview.md{{ query_suffix or '' }}"
-                target="{% if content_frame_url %}docsContentFrame{% endif %}"
-            >{{ repo_name }}</a>
+            <div class="repo-title">{{ docs_display_title or repo_name }}</div>
             <a href="{{ docs_home_url or '/' }}" class="home-link">← 返回文档中心</a>
 
             {% if metadata and metadata.generation_info %}
@@ -2542,8 +2586,100 @@ __CW_SHARED_UI_TOKENS__
                 curve: "basis"
             }
         });
+
+        function enableMermaidZoom(container) {
+            if (!container || container.dataset.zoomBound === "1") return;
+            const svg = container.querySelector("svg");
+            if (!svg) return;
+            container.dataset.zoomBound = "1";
+
+            const hint = document.createElement("div");
+            hint.className = "mermaid-zoom-hint";
+            hint.textContent = "双击启用缩放/拖动";
+            container.appendChild(hint);
+
+            const state = {
+                active: false,
+                dragging: false,
+                scale: 1,
+                x: 0,
+                y: 0,
+                startX: 0,
+                startY: 0,
+            };
+
+            const clampScale = (value) => Math.max(0.3, Math.min(6, value));
+
+            const apply = () => {
+                svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+            };
+
+            const reset = () => {
+                state.scale = 1;
+                state.x = 0;
+                state.y = 0;
+                apply();
+            };
+
+            const setActive = (active) => {
+                state.active = Boolean(active);
+                state.dragging = false;
+                container.classList.toggle("zoom-active", state.active);
+                container.classList.remove("dragging");
+                hint.textContent = state.active ? "滚轮缩放 / 拖动平移 / 双击复位" : "双击启用缩放/拖动";
+                if (!state.active) {
+                    reset();
+                }
+            };
+
+            container.addEventListener("dblclick", (event) => {
+                event.preventDefault();
+                setActive(!state.active);
+            });
+
+            container.addEventListener("wheel", (event) => {
+                if (!state.active) return;
+                event.preventDefault();
+                const rect = container.getBoundingClientRect();
+                const cx = event.clientX - rect.left;
+                const cy = event.clientY - rect.top;
+                const zoomFactor = event.deltaY < 0 ? 1.12 : 0.9;
+                const nextScale = clampScale(state.scale * zoomFactor);
+                const px = (cx - state.x) / state.scale;
+                const py = (cy - state.y) / state.scale;
+                state.scale = nextScale;
+                state.x = cx - px * state.scale;
+                state.y = cy - py * state.scale;
+                apply();
+            }, { passive: false });
+
+            container.addEventListener("mousedown", (event) => {
+                if (!state.active || event.button !== 0) return;
+                event.preventDefault();
+                state.dragging = true;
+                state.startX = event.clientX - state.x;
+                state.startY = event.clientY - state.y;
+                container.classList.add("dragging");
+            });
+
+            window.addEventListener("mousemove", (event) => {
+                if (!state.dragging) return;
+                state.x = event.clientX - state.startX;
+                state.y = event.clientY - state.startY;
+                apply();
+            });
+
+            window.addEventListener("mouseup", () => {
+                if (!state.dragging) return;
+                state.dragging = false;
+                container.classList.remove("dragging");
+            });
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
-            mermaid.init(undefined, document.querySelectorAll(".mermaid"));
+            const nodes = document.querySelectorAll(".mermaid");
+            mermaid.init(undefined, nodes);
+            nodes.forEach((node) => enableMermaidZoom(node));
         });
     </script>
 </body>

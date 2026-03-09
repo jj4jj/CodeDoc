@@ -371,9 +371,32 @@ class WebRoutes:
             view_options = self._collect_doc_type_views(job, job_id)
             current_doc_type = self._extract_doc_type(job, job_id)
             content_frame_url = f"/static-docs-content/{job_id}/{filename}{query_suffix}"
+            docs_display_title = ""
+            try:
+                repo_info = GitHubRepoProcessor.get_repo_info(repo_url or "")
+                docs_display_title = repo_info.get("full_name", "") or ""
+            except Exception:
+                docs_display_title = (repo_url or "").strip()
+
+            subproject_label = ""
+            if job and job.options:
+                subproject_label = self._subproject_label(
+                    job.options.subproject_name or "",
+                    job.options.subproject_path or "",
+                )
+            if not subproject_label:
+                _, sub_key, _ = self._parse_job_id_variants(job_id)
+                if sub_key:
+                    subproject_label = sub_key.replace("__", "/")
+            if docs_display_title:
+                if subproject_label:
+                    docs_display_title = f"{docs_display_title} | 子项目: {subproject_label}"
+            elif subproject_label:
+                docs_display_title = f"子项目: {subproject_label}"
 
             context = {
                 "repo_name": repo_url.split("/")[-1],
+                "docs_display_title": docs_display_title or (repo_url.split("/")[-1] if repo_url else job_id),
                 "title": title,
                 "content": html_content,
                 "navigation": module_tree,
@@ -1627,6 +1650,23 @@ class WebRoutes:
             markdown_files = 0
         return components_count, markdown_files
 
+    def _doc_type_icon(self, doc_type: str) -> str:
+        """Map doc_type to compact icon for homepage cards."""
+        key = normalize_doc_type_name(doc_type)
+        if key in {"architecture", "arch"}:
+            return "🏗"
+        if key in {"developer", "dev"}:
+            return "💻"
+        if key in {"api"}:
+            return "🔌"
+        if key in {"overview", "summary"}:
+            return "📘"
+        if key in {"ops", "operation", "runbook"}:
+            return "🛠"
+        if key in {"product", "prd"}:
+            return "🧭"
+        return "📄"
+
     def _build_home_cards(self, jobs: list[JobStatus]) -> tuple[list[dict], list[dict], dict]:
         metrics_map = self._build_engagement_map(jobs)
         cards: list[dict] = []
@@ -1637,14 +1677,27 @@ class WebRoutes:
                 subproject_name=(job.options.subproject_name if job.options else ""),
                 subproject_path=(job.options.subproject_path if job.options else ""),
             )
+            repo_short = self._job_id_to_repo_full_name(job.job_id)
+            if job.repo_url:
+                try:
+                    repo_info = GitHubRepoProcessor.get_repo_info(job.repo_url)
+                    repo_short = repo_info.get("full_name", "") or repo_short
+                except Exception:
+                    pass
+            display_title = repo_short
+            if subproject_label:
+                display_title = f"{display_title} [{subproject_label}]"
             metrics = metrics_map.get(job.job_id, {})
+            normalized_doc_type = doc_type or "default"
             cards.append({
                 "job_id": job.job_id,
                 "title": job.title or GitHubRepoProcessor.generate_title(job.repo_url),
+                "display_title": display_title,
                 "repo_url": job.repo_url,
                 "created_at": job.created_at.strftime("%Y-%m-%d %H:%M"),
                 "completed_at": (job.completed_at or job.created_at).strftime("%Y-%m-%d %H:%M"),
-                "doc_type": doc_type or "default",
+                "doc_type": normalized_doc_type,
+                "doc_type_icon": self._doc_type_icon(normalized_doc_type),
                 "subproject": subproject_label or "仓库根目录",
                 "status": job.status,
                 "progress": job.progress or "",
