@@ -1874,10 +1874,10 @@ __CW_SHARED_UI_TOKENS__
             </div>
             {% endif %}
 
-            {% if versions and versions|length > 1 %}
+            {% if versions and versions|length > 0 %}
             <div class="sidebar-control">
-                <label for="versionSelect" class="sidebar-control-label">Version</label>
-                <select id="versionSelect" class="sidebar-control-input">
+                <label for="versionSelect" class="sidebar-control-label">版本</label>
+                <select id="versionSelect" class="sidebar-control-input" {% if versions|length <= 1 %}disabled{% endif %}>
                     {% for v in versions %}
                     <option value="{{ v.id }}" {% if current_version == v.id %}selected{% endif %}>{{ v.label }}</option>
                     {% endfor %}
