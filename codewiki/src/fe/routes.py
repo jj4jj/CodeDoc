@@ -443,6 +443,21 @@ class WebRoutes:
             raise HTTPException(status_code=400, detail="message is required")
         return message_text, message_items
 
+    def _sanitize_chat_current_page(self, current_page: str) -> str:
+        """Sanitize chat current_page; fallback to overview.md when malformed."""
+        value = str(current_page or "").strip()
+        if not value:
+            return "overview.md"
+        if len(value) > 260:
+            return "overview.md"
+        if any(ch in value for ch in ("\n", "\r", "\x00")):
+            return "overview.md"
+        if value.startswith(("/", "\\")):
+            return "overview.md"
+        if value.startswith("#") or "```" in value:
+            return "overview.md"
+        return value
+
     async def docs_chat(self, job_id: str, payload: DocChatRequest) -> JSONResponse:
         """Doc page chat endpoint backed by CodeWikiAgent."""
         message_text, message_items = self._extract_chat_message_payload(payload)
@@ -452,7 +467,7 @@ class WebRoutes:
                 job_id=job_id,
                 user_query=message_text,
                 session_id=(payload.session_id or "").strip(),
-                current_page=(payload.current_page or "overview.md").strip(),
+                current_page=self._sanitize_chat_current_page(payload.current_page or "overview.md"),
                 messages=message_items,
             )
         except FileNotFoundError as e:
@@ -473,7 +488,7 @@ class WebRoutes:
                     job_id=job_id,
                     user_query=message_text,
                     session_id=(payload.session_id or "").strip(),
-                    current_page=(payload.current_page or "overview.md").strip(),
+                    current_page=self._sanitize_chat_current_page(payload.current_page or "overview.md"),
                     messages=message_items,
                 ):
                     yield f"event: message\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"

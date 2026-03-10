@@ -4661,6 +4661,124 @@ __CW_SHARED_UI_LAYOUT__
             color: var(--muted);
         }
 
+        .label-with-help {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .field-help-btn {
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--line-strong);
+            border-radius: 4px;
+            background: var(--surface);
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .field-help-btn:hover {
+            background: var(--primary-soft);
+            border-color: var(--primary);
+        }
+
+        .field-help-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.42);
+            z-index: 1200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .field-help-modal.open {
+            display: flex;
+        }
+
+        .field-help-dialog {
+            width: min(680px, 92vw);
+            max-height: 78vh;
+            overflow: auto;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            box-shadow: 0 18px 46px rgba(15, 23, 42, 0.16);
+        }
+
+        .field-help-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--surface-soft);
+        }
+
+        .field-help-title {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--text);
+        }
+
+        .field-help-close {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--muted);
+            min-width: 28px;
+            height: 28px;
+            padding: 0 6px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .field-help-close:hover {
+            color: var(--text);
+            border-color: var(--line-strong);
+            background: var(--surface-soft);
+        }
+
+        .field-help-body {
+            padding: 14px;
+            color: var(--text);
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        .field-help-desc {
+            margin: 0 0 10px 0;
+            color: var(--text);
+            white-space: pre-line;
+        }
+
+        .field-help-subtitle {
+            margin: 0 0 6px 0;
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .field-help-examples {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .field-help-examples li + li {
+            margin-top: 6px;
+        }
+
         .agent-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5455,6 +5573,22 @@ __CW_SHARED_UI_LAYOUT__
                 </div>
             </div>
         </div>
+
+        <div id="fieldHelpModal" class="field-help-modal" aria-hidden="true">
+            <div class="field-help-dialog" role="dialog" aria-modal="true" aria-labelledby="fieldHelpTitle">
+                <div class="field-help-head">
+                    <h3 class="field-help-title" id="fieldHelpTitle">参数说明</h3>
+                    <button type="button" id="fieldHelpCloseBtn" class="field-help-close" aria-label="关闭">×</button>
+                </div>
+                <div class="field-help-body">
+                    <p id="fieldHelpDesc" class="field-help-desc">暂无说明。</p>
+                    <div>
+                        <div class="field-help-subtitle">示例</div>
+                        <ul id="fieldHelpExamples" class="field-help-examples"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -6080,6 +6214,219 @@ __CW_SHARED_UI_LAYOUT__
             });
         }
 
+        function _advancedOptionHelpMap() {
+            return {
+                agent_cmd: {
+                    title: "Agent 命令",
+                    desc: "指定外部 Agent 命令来生成文档内容。留空表示使用默认模型 API 路径。",
+                    examples: [
+                        "claude -p",
+                        "opencode",
+                        "python my_agent.py --mode doc",
+                    ],
+                },
+                output: {
+                    title: "输出目录",
+                    desc: "文档输出的目标目录。建议使用带时间戳的版本目录，避免覆盖历史结果。",
+                    examples: [
+                        "output/docs/o1--server/260310-153000",
+                        "output/docs/o1--server__sp__game-admin/260310-153000",
+                    ],
+                },
+                max_depth: {
+                    title: "最大深度",
+                    desc: "控制模块树聚类/文档组织深度。值越大层次越细，生成耗时通常越高。",
+                    examples: [
+                        "2: 粗粒度总览文档",
+                        "4: 常用平衡值（推荐）",
+                        "6: 细粒度风险或开发视图",
+                    ],
+                },
+                concurrency: {
+                    title: "并发数",
+                    desc: "控制任务内部并行生成的工作线程数。过高可能增加模型并发压力与限流风险。",
+                    examples: [
+                        "2: 低负载稳定模式",
+                        "4: 默认通用配置",
+                        "8: 大仓库提速（需模型侧并发能力支持）",
+                    ],
+                },
+                output_lang: {
+                    title: "输出语言",
+                    desc: "文档输出语言。默认保留主文档语言，可填目标语言代码触发翻译输出。",
+                    examples: [
+                        "zh",
+                        "en",
+                        "ja",
+                    ],
+                },
+                max_tokens: {
+                    title: "最大 Tokens",
+                    desc: "单次模型回答的总 token 上限。过低会导致回答截断，过高会增加成本与延迟。",
+                    examples: [
+                        "32000",
+                        "64000",
+                    ],
+                },
+                max_token_per_module: {
+                    title: "每模块最大 Tokens",
+                    desc: "限制非叶子模块文档生成时的 token 上限，避免单模块输出过长。",
+                    examples: [
+                        "8000: 更紧凑",
+                        "16000: 常用设置",
+                    ],
+                },
+                max_token_per_leaf_module: {
+                    title: "叶子模块最大 Tokens",
+                    desc: "限制叶子模块（具体代码包）输出长度。用于控制细节深度与成本。",
+                    examples: [
+                        "6000: 概要型",
+                        "12000: 详细型",
+                    ],
+                },
+                include: {
+                    title: "包含模式",
+                    desc: "仅分析匹配模式的文件（逗号分隔）。用于快速聚焦某些语言或目录。",
+                    examples: [
+                        "*.go,*.proto",
+                        "cmd/*.go,pkg/**/*.go",
+                    ],
+                },
+                exclude: {
+                    title: "排除模式",
+                    desc: "忽略匹配模式的文件（逗号分隔）。常用于过滤测试、第三方和生成代码。",
+                    examples: [
+                        "*test*,*mock*",
+                        "vendor/**,node_modules/**,**/*_gen.go",
+                    ],
+                },
+                focus: {
+                    title: "聚焦路径",
+                    desc: "指定重点分析的模块/目录，模型会优先输出这些区域的详细内容。",
+                    examples: [
+                        "pkg/api,pkg/service",
+                        "internal/order,internal/payment",
+                    ],
+                },
+                instructions: {
+                    title: "附加指令",
+                    desc: "补充给模型的额外约束与风格要求，会叠加到文档类型模板提示词中。",
+                    examples: [
+                        "重点输出风险清单并给出修复优先级。",
+                        "所有流程说明都要求带 Mermaid 时序图。",
+                    ],
+                },
+                skills: {
+                    title: "Skills",
+                    desc: "启用内置技能提示词（逗号分隔），用于增强特定能力（如 Mermaid 校验）。",
+                    examples: [
+                        "mermaid-validator",
+                        "mermaid-validator,security-checklist",
+                    ],
+                },
+                custom_cli_args: {
+                    title: "自定义 CLI 参数",
+                    desc: "透传到底层 CLI 的额外参数。仅建议用于临时调试或高级定制。",
+                    examples: [
+                        "-v --max-depth 4",
+                        "--include '*.go' --exclude '*test*'",
+                    ],
+                },
+                create_branch: {
+                    title: "生成后创建分支",
+                    desc: "任务完成后在仓库中创建文档分支，便于后续提交流程。",
+                    examples: [
+                        "启用: 自动创建分支承载文档变更",
+                        "关闭: 仅在本地输出目录生成文档",
+                    ],
+                },
+                github_pages: {
+                    title: "生成 GitHub Pages 页面",
+                    desc: "生成可静态托管的页面资源，便于直接部署文档站点。",
+                    examples: [
+                        "启用: 输出 HTML 静态页面",
+                        "关闭: 仅输出 Markdown 文档",
+                    ],
+                },
+                no_cache: {
+                    title: "禁用缓存",
+                    desc: "忽略已有缓存，强制重新分析和生成。适用于代码刚变更或模板刚调整的场景。",
+                    examples: [
+                        "启用: 始终全量重跑",
+                        "关闭: 优先复用缓存加速",
+                    ],
+                },
+            };
+        }
+
+        function wireAdvancedOptionHelp() {
+            const panel = document.getElementById("panel-create");
+            if (!panel) return;
+
+            const modal = document.getElementById("fieldHelpModal");
+            const titleEl = document.getElementById("fieldHelpTitle");
+            const descEl = document.getElementById("fieldHelpDesc");
+            const examplesEl = document.getElementById("fieldHelpExamples");
+            const closeBtn = document.getElementById("fieldHelpCloseBtn");
+            if (!modal || !titleEl || !descEl || !examplesEl || !closeBtn) return;
+
+            const showModal = (help) => {
+                titleEl.textContent = help.title || "参数说明";
+                descEl.textContent = help.desc || "暂无说明。";
+                examplesEl.innerHTML = "";
+                const examples = Array.isArray(help.examples) ? help.examples : [];
+                if (!examples.length) {
+                    const li = document.createElement("li");
+                    li.textContent = "暂无示例";
+                    examplesEl.appendChild(li);
+                } else {
+                    examples.forEach((item) => {
+                        const li = document.createElement("li");
+                        li.textContent = String(item || "");
+                        examplesEl.appendChild(li);
+                    });
+                }
+                modal.classList.add("open");
+                modal.setAttribute("aria-hidden", "false");
+            };
+
+            const hideModal = () => {
+                modal.classList.remove("open");
+                modal.setAttribute("aria-hidden", "true");
+            };
+
+            closeBtn.addEventListener("click", hideModal);
+            modal.addEventListener("click", (event) => {
+                if (event.target === modal) hideModal();
+            });
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && modal.classList.contains("open")) {
+                    hideModal();
+                }
+            });
+
+            const helpMap = _advancedOptionHelpMap();
+            Object.entries(helpMap).forEach(([fieldId, help]) => {
+                const label = panel.querySelector(`.options-grid label[for="${fieldId}"]`);
+                if (!label || label.dataset.helpBound === "1") return;
+                label.dataset.helpBound = "1";
+                label.classList.add("label-with-help");
+
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "field-help-btn";
+                btn.textContent = "i";
+                btn.setAttribute("aria-label", `${help.title} 参数说明`);
+                btn.setAttribute("title", "查看参数说明");
+                btn.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    showModal(help);
+                });
+                label.appendChild(btn);
+            });
+        }
+
         async function stopTask(jobId) {
             if (!confirm("确定停止该任务吗？")) {
                 return;
@@ -6115,6 +6462,7 @@ __CW_SHARED_UI_LAYOUT__
 
             loadAdvancedOptions();
             wireAdvancedOptionsPersistence();
+            wireAdvancedOptionHelp();
             wireAdminPanels();
             wireDocTypeManager();
             const forcePanelFromServer = {{ (active_panel or "")|tojson }};

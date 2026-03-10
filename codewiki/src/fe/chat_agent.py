@@ -36,6 +36,7 @@ from .config import WebAppConfig
 from .github_processor import GitHubRepoProcessor
 
 logger = logging.getLogger(__name__)
+MAX_TOOL_RELPATH_CHARS = 512
 
 
 def _clip_text(value: str, max_chars: int = 12_000) -> str:
@@ -45,15 +46,47 @@ def _clip_text(value: str, max_chars: int = 12_000) -> str:
     return f"{value[:max_chars]}\n\n... [truncated {omitted} chars]"
 
 
-def _normalize_relpath(raw_path: str) -> str:
-    normalized = (raw_path or "").strip().replace("\\", "/")
+def _normalize_relpath(raw_path: Any) -> str:
+    normalized = str(raw_path or "").strip().replace("\\", "/")
     while normalized.startswith("./"):
         normalized = normalized[2:]
     return normalized.strip("/")
 
 
+def _sanitize_current_page_path(raw_path: str) -> str:
+    value = _normalize_relpath(raw_path)
+    if not value:
+        return "overview.md"
+    if len(value) > 260:
+        return "overview.md"
+    if any(ch in value for ch in ("\n", "\r", "\x00")):
+        return "overview.md"
+    if _looks_like_markdown_blob(value):
+        return "overview.md"
+    return value
+
+
+def _looks_like_markdown_blob(value: str) -> bool:
+    text = (value or "").lstrip()
+    if not text:
+        return False
+    return text.startswith("#") or "```" in text or "\n\n" in text
+
+
 def _resolve_under(base: Path, rel_path: str) -> Path:
-    candidate = (base / _normalize_relpath(rel_path)).resolve()
+    normalized = _normalize_relpath(rel_path)
+    if not normalized:
+        raise ValueError("Path is empty")
+    if len(normalized) > MAX_TOOL_RELPATH_CHARS:
+        raise ValueError("Path is too long")
+    if any(ch in normalized for ch in ("\n", "\r", "\x00")):
+        raise ValueError("Path must be single-line text")
+    if _looks_like_markdown_blob(normalized):
+        raise ValueError("Path looks like markdown content, not a file path")
+    try:
+        candidate = (base / normalized).resolve()
+    except OSError as exc:
+        raise ValueError(f"Invalid path: {exc}") from exc
     if not candidate.is_relative_to(base.resolve()):
         raise ValueError("Path escapes allowed workspace")
     return candidate
@@ -118,8 +151,9 @@ async def _list_docs_tool(ctx: RunContext[_ChatDeps], subpath: str = "", limit: 
         ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=True)
         return result
     except Exception as exc:
-        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, f"Tool failed: {exc}", ok=False)
-        raise
+        result = f"Tool failed: {exc}"
+        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=False)
+        return result
 
 
 async def _read_doc_tool(ctx: RunContext[_ChatDeps], relative_path: str) -> str:
@@ -143,8 +177,9 @@ async def _read_doc_tool(ctx: RunContext[_ChatDeps], relative_path: str) -> str:
         ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=True)
         return result
     except Exception as exc:
-        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, f"Tool failed: {exc}", ok=False)
-        raise
+        result = f"Tool failed: {exc}"
+        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=False)
+        return result
 
 
 async def _write_doc_tool(
@@ -193,8 +228,9 @@ async def _write_doc_tool(
         ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=True)
         return result
     except Exception as exc:
-        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, f"Tool failed: {exc}", ok=False)
-        raise
+        result = f"Tool failed: {exc}"
+        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=False)
+        return result
 
 
 async def _list_code_tool(ctx: RunContext[_ChatDeps], subpath: str = "", limit: int = 400) -> str:
@@ -231,8 +267,9 @@ async def _list_code_tool(ctx: RunContext[_ChatDeps], subpath: str = "", limit: 
         ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=True)
         return result
     except Exception as exc:
-        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, f"Tool failed: {exc}", ok=False)
-        raise
+        result = f"Tool failed: {exc}"
+        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=False)
+        return result
 
 
 async def _read_code_tool(
@@ -272,8 +309,9 @@ async def _read_code_tool(
         ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=True)
         return result
     except Exception as exc:
-        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, f"Tool failed: {exc}", ok=False)
-        raise
+        result = f"Tool failed: {exc}"
+        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=False)
+        return result
 
 
 async def _grep_code_tool(
@@ -321,8 +359,9 @@ async def _grep_code_tool(
         ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=True)
         return result
     except Exception as exc:
-        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, f"Tool failed: {exc}", ok=False)
-        raise
+        result = f"Tool failed: {exc}"
+        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=False)
+        return result
 
 
 async def _run_bash_tool(
@@ -344,8 +383,9 @@ async def _run_bash_tool(
         ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=True)
         return result
     except Exception as exc:
-        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, f"Tool failed: {exc}", ok=False)
-        raise
+        result = f"Tool failed: {exc}"
+        ctx.deps.service.trace_tool_end(ctx.deps.session, trace_id, result, ok=False)
+        return result
 
 
 class CodeWikiChatService:
@@ -487,7 +527,8 @@ class CodeWikiChatService:
     ) -> tuple[_ChatSession, str, Agent, str, _ChatDeps]:
         self._cleanup_expired_sessions()
         safe_session_id = (session_id or "").strip() or secrets.token_hex(12)
-        session = self._create_or_get_session(job_id, safe_session_id, current_page=current_page)
+        safe_current_page = _sanitize_current_page_path(current_page)
+        session = self._create_or_get_session(job_id, safe_session_id, current_page=safe_current_page)
 
         safe_messages = list(messages or [])
         prompt = self._format_prompt(session, safe_messages, user_query=user_query)
@@ -507,14 +548,17 @@ class CodeWikiChatService:
             Tool(
                 function=_read_doc_tool,
                 name="read_doc",
-                description="Read one generated documentation file by relative path.",
+                description=(
+                    "Read one generated documentation file by relative path "
+                    "(e.g., overview.md or modules/api.md)."
+                ),
                 takes_ctx=True,
             ),
             Tool(
                 function=_write_doc_tool,
                 name="write_doc",
                 description=(
-                    "Write markdown file under docs directory. "
+                    "Write markdown file under docs directory by relative path only. "
                     "Supports mode=overwrite|append, docs only."
                 ),
                 takes_ctx=True,
@@ -740,6 +784,14 @@ class CodeWikiChatService:
             temp_user=temp_user,
             model_name=model_name,
         )
+        logger.info(
+            "CodeWikiAgent session initialized: job_id=%s session_id=%s docs_dir=%s repo_dir=%s subproject_path=%s",
+            job_id,
+            session_id,
+            session.docs_dir.as_posix(),
+            session.repo_dir.as_posix() if session.repo_dir else "(unavailable)",
+            session.subproject_path or "(repo-root)",
+        )
 
         with self._lock:
             self._sessions[session_id] = session
@@ -922,7 +974,12 @@ class CodeWikiChatService:
             dedup.append(item)
         return dedup
 
-    def _build_model_diagnostics(self, exc: Exception, primary_model: str) -> str:
+    def _build_model_diagnostics(
+        self,
+        exc: Exception,
+        primary_model: str,
+        session: Optional[_ChatSession] = None,
+    ) -> str:
         """Build user-visible diagnostics for model/auth/base_url failures."""
         model_list = [name.strip() for name in WebAppConfig.AGENT_MODEL_NAMES if name and name.strip()]
         if not model_list:
@@ -939,6 +996,8 @@ class CodeWikiChatService:
                 hints.append("可能是 AGENT_MODEL_NAMES 中模型名与网关不匹配。")
             if any(k in lowered for k in ["connection", "timeout", "dns", "refused", "ssl", "certificate"]):
                 hints.append("可能是 AGENT_MODEL_BASE_URL 不可达或证书配置异常。")
+            if "file name too long" in lowered:
+                hints.append("工具参数可能把整段文档内容当成文件路径，请改传相对路径（如 overview.md）。")
 
         unique_hints: list[str] = []
         for hint in hints:
@@ -951,8 +1010,18 @@ class CodeWikiChatService:
             f"- base_url: {base_url or '(empty)'}",
             f"- api_key_provided: {'yes' if api_key_exists else 'no'}",
             f"- models: {', '.join(model_list)}",
-            "- errors:",
         ]
+        if session:
+            lines.extend(
+                [
+                    f"- docs_dir: {session.docs_dir.as_posix()}",
+                    (
+                        "- repo_dir: "
+                        + (session.repo_dir.as_posix() if session.repo_dir else "(unavailable)")
+                    ),
+                ]
+            )
+        lines.append("- errors:")
         for item in details:
             lines.append(f"  - {item}")
         if unique_hints:
@@ -1042,7 +1111,7 @@ class CodeWikiChatService:
         try:
             result = await agent.run(prompt, deps=deps)
         except Exception as exc:
-            diagnostics = self._build_model_diagnostics(exc, model_name)
+            diagnostics = self._build_model_diagnostics(exc, model_name, session=session)
             self._push_trace_event(
                 session=session,
                 event_type="content",
@@ -1178,7 +1247,7 @@ class CodeWikiChatService:
                     }
                 )
             except Exception as exc:
-                diagnostics = self._build_model_diagnostics(exc, model_name)
+                diagnostics = self._build_model_diagnostics(exc, model_name, session=session)
                 self._push_trace_event(
                     session=session,
                     event_type="content",
