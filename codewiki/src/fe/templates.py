@@ -944,7 +944,7 @@ __CW_SHARED_UI_LAYOUT__
                             <span>文件: {{ card.file_count }}</span>
                         </div>
                         <div class="card-subprojects">
-                            <span>子项目列表:</span>
+                            <span>子项目:</span>
                             {% for sp in card.subprojects %}
                             <span class="card-chip">{{ sp }}</span>
                             {% endfor %}
@@ -4455,6 +4455,24 @@ __CW_SHARED_UI_LAYOUT__
             margin-top: 8px;
         }
 
+        .panel-head-tight {
+            margin-top: 2px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .panel-head-tight h3 {
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        .doc-type-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
         .options-details {
             margin-bottom: 12px;
             border: 1px solid var(--line);
@@ -5124,7 +5142,11 @@ __CW_SHARED_UI_LAYOUT__
                     <div class="panel-desc">定义不同文档类型的结构重点与指令，并在任务中通过 <code>doc_type</code> 选择。</div>
                 </div>
 
-                <form method="POST" action="/admin/doc-types">
+                <form method="POST" action="/admin/doc-types" id="docTypeForm">
+                    <div class="panel-head panel-head-tight">
+                        <h3 id="docTypeFormTitle">创建模板</h3>
+                        <div class="panel-desc" id="docTypeFormDesc">填写模板信息后保存；可通过下方表格快速编辑或复制。</div>
+                    </div>
                     <div class="options-grid" style="padding:0;">
                         <div class="field">
                             <label for="profile_doc_type">文档类型 Key</label>
@@ -5180,7 +5202,8 @@ __CW_SHARED_UI_LAYOUT__
                         </div>
                     </div>
                     <div class="actions-row">
-                        <button class="btn btn-primary" type="submit">保存模板</button>
+                        <button class="btn" type="button" id="docTypeResetBtn">重置</button>
+                        <button class="btn btn-primary" type="submit" id="docTypeSubmitBtn">保存模板</button>
                     </div>
                 </form>
 
@@ -5195,6 +5218,7 @@ __CW_SHARED_UI_LAYOUT__
                                     <th>显示名</th>
                                     <th>说明</th>
                                     <th>类型</th>
+                                    <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -5204,6 +5228,36 @@ __CW_SHARED_UI_LAYOUT__
                                     <td>{{ option.display_name or '-' }}</td>
                                     <td>{{ option.description or '-' }}</td>
                                     <td>{% if option.built_in %}Built-in{% else %}Custom{% endif %}</td>
+                                    <td>
+                                        <div class="doc-type-actions">
+                                            <button
+                                                type="button"
+                                                class="btn doc-type-edit-btn"
+                                                data-profile="{{ option|tojson|forceescape }}"
+                                                title="编辑模板"
+                                            >
+                                                编辑
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="btn doc-type-copy-btn"
+                                                data-profile="{{ option|tojson|forceescape }}"
+                                                title="复制模板"
+                                            >
+                                                复制
+                                            </button>
+                                            {% if not option.built_in %}
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger doc-type-prepare-delete-btn"
+                                                data-doc-type="{{ option.name }}"
+                                                title="准备删除模板"
+                                            >
+                                                删除
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -5212,15 +5266,30 @@ __CW_SHARED_UI_LAYOUT__
                 </div>
                 {% endif %}
 
-                <form method="POST" action="/admin/doc-types/delete" style="margin-top:10px;">
+                <form method="POST" action="/admin/doc-types/delete" id="docTypeDeleteForm" style="margin-top:10px; border-top: 1px solid var(--line); padding-top: 12px;">
+                    <h3 style="font-size:0.92rem; margin-bottom:8px; color: var(--danger);">删除自定义模板（危险操作）</h3>
                     <div class="form-grid-2" style="margin-bottom:0;">
                         <div class="field">
-                            <label for="delete_doc_type">删除自定义模板</label>
-                            <input id="delete_doc_type" name="doc_type" type="text" required placeholder="输入 doc_type key">
+                            <label for="delete_doc_type">模板 Key</label>
+                            <select id="delete_doc_type" name="doc_type" required>
+                                <option value="">请选择自定义模板</option>
+                                {% set custom_doc_types = doc_type_options | selectattr("built_in", "equalto", false) | list %}
+                                {% for option in custom_doc_types %}
+                                <option value="{{ option.name }}">{{ option.name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if custom_doc_types|length == 0 %}
+                            <small style="display:block; margin-top:6px; color:var(--muted);">当前没有可删除的自定义模板。</small>
+                            {% endif %}
                         </div>
-                        <div class="actions-row" style="align-self:end; justify-content:flex-start;">
-                            <button class="btn btn-danger" type="submit">删除模板</button>
+                        <div class="field">
+                            <label for="delete_doc_type_confirm">二次确认</label>
+                            <input id="delete_doc_type_confirm" type="text" placeholder="再次输入上方模板 Key 以确认删除">
+                            <small style="display:block; margin-top:6px; color:var(--danger);">必须与模板 Key 完全一致，按钮才会启用。</small>
                         </div>
+                    </div>
+                    <div class="actions-row" style="justify-content:flex-start;">
+                        <button class="btn btn-danger" type="submit" id="docTypeDeleteBtn" disabled>删除模板</button>
                     </div>
                 </form>
             </section>
@@ -5755,6 +5824,162 @@ __CW_SHARED_UI_LAYOUT__
             saveAdvancedOptions();
         }
 
+        function _parseDocTypeProfile(raw) {
+            const text = String(raw || "").trim();
+            if (!text) return null;
+            try {
+                const parsed = JSON.parse(text);
+                return parsed && typeof parsed === "object" ? parsed : null;
+            } catch (error) {
+                console.warn("Failed to parse doc type profile", error);
+                return null;
+            }
+        }
+
+        function _setDocTypeFormMode(mode, sourceName) {
+            const titleEl = document.getElementById("docTypeFormTitle");
+            const descEl = document.getElementById("docTypeFormDesc");
+            const submitBtn = document.getElementById("docTypeSubmitBtn");
+            const keyInput = document.getElementById("profile_doc_type");
+            const safeName = String(sourceName || "").trim();
+
+            if (mode === "edit") {
+                if (titleEl) titleEl.textContent = safeName ? `编辑模板: ${safeName}` : "编辑模板";
+                if (descEl) descEl.textContent = "将更新相同 key 的模板配置（编辑模式下 key 不可修改）。";
+                if (submitBtn) submitBtn.textContent = "保存修改";
+                if (keyInput) {
+                    keyInput.readOnly = true;
+                    keyInput.setAttribute("aria-readonly", "true");
+                    keyInput.title = "编辑模式下文档类型 Key 不可修改";
+                }
+                return;
+            }
+
+            if (mode === "copy") {
+                if (titleEl) titleEl.textContent = safeName ? `复制模板: ${safeName}` : "复制模板";
+                if (descEl) descEl.textContent = "请修改 Key 后保存为新模板。";
+                if (submitBtn) submitBtn.textContent = "保存为新模板";
+                if (keyInput) {
+                    keyInput.readOnly = false;
+                    keyInput.removeAttribute("aria-readonly");
+                    keyInput.title = "";
+                }
+                return;
+            }
+
+            if (titleEl) titleEl.textContent = "创建模板";
+            if (descEl) descEl.textContent = "填写模板信息后保存；可通过下方表格快速编辑或复制。";
+            if (submitBtn) submitBtn.textContent = "保存模板";
+            if (keyInput) {
+                keyInput.readOnly = false;
+                keyInput.removeAttribute("aria-readonly");
+                keyInput.title = "";
+            }
+        }
+
+        function _fillDocTypeForm(profile, mode) {
+            const form = document.getElementById("docTypeForm");
+            if (!form || !profile || typeof profile !== "object") return;
+
+            const sourceName = String(profile.name || "").trim();
+            _setDocTypeFormMode(mode, sourceName);
+
+            let docType = sourceName;
+            if (mode === "copy") {
+                docType = sourceName ? `${sourceName}-copy` : "";
+            }
+
+            _setFormValue(form, "doc_type", docType);
+            _setFormValue(form, "display_name", profile.display_name || "");
+            _setFormValue(form, "description", profile.description || "");
+            _setFormValue(form, "prompt", profile.prompt || "");
+            _setFormValue(form, "include", profile.include || "");
+            _setFormValue(form, "exclude", profile.exclude || "");
+            _setFormValue(form, "focus", profile.focus || "");
+            _setFormValue(form, "skills", profile.skills || "");
+            _setFormValue(form, "max_tokens", profile.max_tokens ?? "");
+            _setFormValue(form, "max_token_per_module", profile.max_token_per_module ?? "");
+            _setFormValue(form, "max_token_per_leaf_module", profile.max_token_per_leaf_module ?? "");
+            _setFormValue(form, "max_depth", profile.max_depth ?? "");
+            _setFormValue(form, "profile_concurrency", profile.concurrency ?? "");
+
+            const keyInput = document.getElementById("profile_doc_type");
+            if (keyInput) {
+                keyInput.focus();
+                if (mode === "copy") keyInput.select();
+            }
+        }
+
+        function wireDocTypeManager() {
+            const form = document.getElementById("docTypeForm");
+            if (!form) return;
+
+            const resetBtn = document.getElementById("docTypeResetBtn");
+            if (resetBtn) {
+                resetBtn.addEventListener("click", () => {
+                    form.reset();
+                    _setDocTypeFormMode("create", "");
+                });
+            }
+
+            document.querySelectorAll(".doc-type-edit-btn[data-profile]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const profile = _parseDocTypeProfile(btn.getAttribute("data-profile"));
+                    if (!profile) return;
+                    _fillDocTypeForm(profile, "edit");
+                });
+            });
+
+            document.querySelectorAll(".doc-type-copy-btn[data-profile]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const profile = _parseDocTypeProfile(btn.getAttribute("data-profile"));
+                    if (!profile) return;
+                    _fillDocTypeForm(profile, "copy");
+                });
+            });
+
+            const deleteForm = document.getElementById("docTypeDeleteForm");
+            const deleteSelect = document.getElementById("delete_doc_type");
+            const deleteConfirm = document.getElementById("delete_doc_type_confirm");
+            const deleteBtn = document.getElementById("docTypeDeleteBtn");
+
+            const syncDeleteButton = () => {
+                if (!deleteBtn || !deleteSelect || !deleteConfirm) return;
+                const key = String(deleteSelect.value || "").trim();
+                const confirmValue = String(deleteConfirm.value || "").trim();
+                deleteBtn.disabled = !key || confirmValue !== key;
+            };
+
+            if (deleteSelect) {
+                deleteSelect.addEventListener("change", syncDeleteButton);
+            }
+            if (deleteConfirm) {
+                deleteConfirm.addEventListener("input", syncDeleteButton);
+            }
+            syncDeleteButton();
+
+            if (deleteForm) {
+                deleteForm.addEventListener("submit", (event) => {
+                    syncDeleteButton();
+                    if (deleteBtn && deleteBtn.disabled) {
+                        event.preventDefault();
+                        alert("请输入与模板 Key 完全一致的确认内容。");
+                    }
+                });
+            }
+
+            document.querySelectorAll(".doc-type-prepare-delete-btn[data-doc-type]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    if (!deleteSelect || !deleteConfirm) return;
+                    deleteSelect.value = String(btn.getAttribute("data-doc-type") || "").trim();
+                    deleteConfirm.value = "";
+                    syncDeleteButton();
+                    deleteConfirm.focus();
+                    deleteConfirm.scrollIntoView({ behavior: "smooth", block: "center" });
+                });
+            });
+        }
+
         async function stopTask(jobId) {
             if (!confirm("确定停止该任务吗？")) {
                 return;
@@ -5791,6 +6016,7 @@ __CW_SHARED_UI_LAYOUT__
             loadAdvancedOptions();
             wireAdvancedOptionsPersistence();
             wireAdminPanels();
+            wireDocTypeManager();
             const forcePanelFromServer = {{ (active_panel or "")|tojson }};
             if (forcePanelFromServer && typeof window.setAdminPanel === "function") {
                 window.setAdminPanel(forcePanelFromServer);

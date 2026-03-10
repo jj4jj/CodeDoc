@@ -1549,7 +1549,7 @@ class WebRoutes:
         """Handle doc-type profile create/update from admin page."""
         key = normalize_doc_type_name(doc_type)
         if not key:
-            context = self._build_admin_context(error="文档类型不能为空")
+            context = self._build_admin_context(error="文档类型不能为空", active_panel="panel-doc-types")
             return HTMLResponse(content=render_template(ADMIN_TEMPLATE, context), status_code=400)
 
         payload = {
@@ -1570,12 +1570,13 @@ class WebRoutes:
         try:
             saved = upsert_doc_type_profile(key, payload)
         except ValueError as e:
-            context = self._build_admin_context(error=str(e))
+            context = self._build_admin_context(error=str(e), active_panel="panel-doc-types")
             return HTMLResponse(content=render_template(ADMIN_TEMPLATE, context), status_code=400)
 
         context = self._build_admin_context(
             message=f"文档类型模板已保存: {saved.get('name', key)}",
             message_type="success",
+            active_panel="panel-doc-types",
         )
         return HTMLResponse(content=render_template(ADMIN_TEMPLATE, context))
 
@@ -1587,27 +1588,41 @@ class WebRoutes:
         """Handle doc-type profile delete from admin page."""
         key = normalize_doc_type_name(doc_type)
         if not key:
-            context = self._build_admin_context(error="文档类型不能为空")
+            context = self._build_admin_context(error="文档类型不能为空", active_panel="panel-doc-types")
             return HTMLResponse(content=render_template(ADMIN_TEMPLATE, context), status_code=400)
 
         try:
             removed = delete_doc_type_profile(key)
         except ValueError as e:
-            context = self._build_admin_context(error=str(e))
+            context = self._build_admin_context(error=str(e), active_panel="panel-doc-types")
             return HTMLResponse(content=render_template(ADMIN_TEMPLATE, context), status_code=400)
 
         if not removed:
-            context = self._build_admin_context(error=f"未找到可删除的自定义模板: {key}")
+            context = self._build_admin_context(
+                error=f"未找到可删除的自定义模板: {key}",
+                active_panel="panel-doc-types",
+            )
             return HTMLResponse(content=render_template(ADMIN_TEMPLATE, context), status_code=404)
 
         context = self._build_admin_context(
             message=f"文档类型模板已删除: {key}",
             message_type="success",
+            active_panel="panel-doc-types",
         )
         return HTMLResponse(content=render_template(ADMIN_TEMPLATE, context))
 
     def _doc_type_options(self):
         profiles = list_doc_type_profiles()
+
+        def _list_to_csv(value) -> str:
+            if not value:
+                return ""
+            if isinstance(value, str):
+                return value.strip()
+            if isinstance(value, (list, tuple, set)):
+                return ",".join(str(item).strip() for item in value if str(item).strip())
+            return str(value).strip()
+
         options = []
         for key in sorted(profiles):
             profile = profiles[key]
@@ -1615,6 +1630,16 @@ class WebRoutes:
                 "name": key,
                 "display_name": profile.get("display_name", ""),
                 "description": profile.get("description", ""),
+                "prompt": profile.get("prompt", ""),
+                "include": _list_to_csv(profile.get("include_patterns")),
+                "exclude": _list_to_csv(profile.get("exclude_patterns")),
+                "focus": _list_to_csv(profile.get("focus_modules")),
+                "skills": _list_to_csv(profile.get("skills")),
+                "max_tokens": profile.get("max_tokens"),
+                "max_token_per_module": profile.get("max_token_per_module"),
+                "max_token_per_leaf_module": profile.get("max_token_per_leaf_module"),
+                "max_depth": profile.get("max_depth"),
+                "concurrency": profile.get("concurrency"),
                 "built_in": bool(profile.get("built_in")),
             })
         return options
